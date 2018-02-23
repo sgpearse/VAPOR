@@ -7,6 +7,11 @@
 
 #include "voro++/voro++.hh"
 
+/*
+   This version differs from V1 in that this one assumes the volume to start from 0,
+   and end at (GRIDX, GRIDY, GRIDZ). This assumption helps eliminate a few calculations.
+*/
+
 #define GRIDX 1024
 #define GRIDY 1024
 #define GRIDZ 1024
