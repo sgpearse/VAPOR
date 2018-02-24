@@ -87,7 +87,7 @@ int main(int argc, char **argv)
             }
         }
         gettimeofday(&planeEnd, NULL);
-        std::cerr << "kdtree retrieval plane " << z << " takes " << GetElapsedSeconds(&planeStart, &planeEnd) << " seconds." << std::endl;
+        // std::cerr << "kdtree retrieval plane " << z << " takes " << GetElapsedSeconds(&planeStart, &planeEnd) << " seconds." << std::endl;
     }
     gettimeofday(&end, NULL);
     std::cerr << "total kdtree retrieval takes " << GetElapsedSeconds(&start, &end) << " seconds." << std::endl;
@@ -96,23 +96,28 @@ int main(int argc, char **argv)
     for (long i = 0; i < totalGridPts; i++)
         if (pcounter[i] != NULL) (*(pcounter[i]))++;
 
-    /**** print diagnostic info ****/
+/**** print diagnostic info ****/
+#if 0
     // What's the total count all counters have?
     int total = 0;
-    for (long i = 0; i < nPtcToUse; i++) total += counter[i];
+    for( long i = 0; i < nPtcToUse; i++ )
+        total += counter[i];
     std::cout << "Total count is : " << total << std::endl;
 
     // How many pointers to counters are non-NULL?
     total = 0;
-    for (int i = 0; i < totalGridPts; i++)
-        if (pcounter[i] != NULL) total++;
+    for( int i = 0; i < totalGridPts; i++ )
+        if( pcounter[i] != NULL )
+            total++;
     std::cout << "Total non-NULL pointer is : " << total << std::endl;
 
     // Print some random counters
-    for (int i = 0; i < 10; i++) {
+    for( int i = 0; i < 10; i++ )
+    {
         int idx = (float)rand() / RAND_MAX * nPtcToUse;
         std::cout << "A random counter value: " << counter[idx] << std::endl;
     }
+#endif
     /**** finish printing diagnostic info ****/
 
     // Each grid point calculates its own density
@@ -149,7 +154,7 @@ int main(int argc, char **argv)
             // for( int j = 0; j < 3; j++ )
             //    std::cerr << "Particle coord = " << particle[j] << ";  Grid coord = " << grid[j] << std::endl;
         }
-    std::cerr << "voronoi cell without a grid point: " << emptyCellCount << std::endl;
+    std::cerr << "percentage of voronoi cell without a grid point: " << 100.0f * emptyCellCount / nPtcToUse << std::endl;
 
     // Output the density field
     FILE * f = fopen(argv[2], "w");
