@@ -70,9 +70,9 @@ int main(int argc, char **argv)
 
     // Find the closest particle for each grid point (in parallel)
     gettimeofday(&start, NULL);
-// for( long z = 0; z < GRIDZ; z++ )
 #pragma omp parallel for
-    for (long z = 200; z < 400; z += 20) {
+    for (long z = 0; z < GRIDZ; z++)    // for( long z = 200; z < 400; z+=20 )
+    {
         struct timeval planeStart, planeEnd;
         gettimeofday(&planeStart, NULL);
         long zOffset = z * GRIDX * GRIDY;
@@ -117,9 +117,9 @@ int main(int argc, char **argv)
 
     // Each grid point calculates its own density
     float *density = new float[totalGridPts];
-// for( long z = 0; z < GRIDZ; z++ )
 #pragma omp parallel for
-    for (long int z = 200; z < 400; z += 20) {
+    for (long z = 0; z < GRIDZ; z++)    // for( long int z = 200; z < 400; z+=20)
+    {
         long int zOffset = z * GRIDX * GRIDY;
         for (long int y = 0; y < GRIDY; y++) {
             long int yOffset = y * GRIDX + zOffset;
