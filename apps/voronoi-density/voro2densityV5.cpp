@@ -14,12 +14,14 @@
 
 #include "kdtree/nanoflann.hpp"
 
-#define GRIDX 1024
-#define GRIDY 1024
-#define GRIDZ 1024
+#define GRIDX (1024)
+#define GRIDY (1024)
+#define GRIDZ (1024)
+#define EXTX  (M_PI * 2.0)
+#define EXTY  (M_PI * 2.0)
+#define EXTZ  (M_PI * 2.0)
 
 typedef unsigned int INT;
-typedef float        FLOAT;
 
 const INT totalGridPts = (GRIDX) * (GRIDY) * (GRIDZ);
 
@@ -66,18 +68,18 @@ public:
     //   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
     //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
     template<class BBOX> bool kdtree_get_bbox(BBOX & /* bb */) const { return false; }
-};
 
-template<typename T> void FillPointCloud(PointCloud<T> &point, const INT N, const T *buf)
-{
-    point.pts.resize(N);
-    for (INT i = 0; i < N; i++) {
-        INT idx = i * 3;
-        point.pts[i].x = buf[idx];
-        point.pts[i].y = buf[idx + 1];
-        point.pts[i].z = buf[idx + 2];
+    void FillByArray(const INT N, const T *buf)
+    {
+        pts.resize(N);
+        for (INT i = 0; i < N; i++) {
+            INT idx = i * 3;
+            pts[i].x = buf[idx] / EXTX * GRIDX;
+            pts[i].y = buf[idx + 1] / EXTY * GRIDY;
+            pts[i].z = buf[idx + 2] / EXTZ * GRIDZ;
+        }
     }
-}
+};
 
 int main(int argc, char **argv)
 {
@@ -95,11 +97,11 @@ int main(int argc, char **argv)
 
     // Put particles in a "PointCloud"
     PointCloud<float> cloud;
-    FillPointCloud(cloud, nPtcToUse, ptcBuf);
+    cloud.FillByArray(nPtcToUse, ptcBuf);
 
     // construct a kd-tree index:
     typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<float, PointCloud<float>>, PointCloud<float>, 3> my_kd_tree_t;
-    my_kd_tree_t kd_index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(15 /* max leaf */));
+    my_kd_tree_t kd_index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(4 /* max leaf */));
     gettimeofday(&start, NULL);
     kd_index.buildIndex();
     gettimeofday(&end, NULL);
@@ -114,14 +116,13 @@ int main(int argc, char **argv)
     for (INT i = 0; i < totalGridPts; i++) pcounter[i] = 0;
 
     // Find the closest particle for each grid point
-    INT                                 ret_index;
-    float                               out_dist_sqr;
-    nanoflann::KNNResultSet<float, INT> resultSet(1);
-    resultSet.init(&ret_index, &out_dist_sqr);
     gettimeofday(&start, NULL);
 #pragma omp parallel for
     for (INT z = 0; z < GRIDZ; z++) {
-#ifndef NDEBUG
+        nanoflann::KNNResultSet<float, INT> resultSet(1);
+        INT                                 ret_index;
+        float                               out_dist_sqr;
+#ifdef DEBUG
         struct timeval planeStart, planeEnd;
         gettimeofday(&planeStart, NULL);
 #endif
@@ -129,13 +130,14 @@ int main(int argc, char **argv)
         for (INT y = 0; y < GRIDY; y++) {
             INT yOffset = y * GRIDX + zOffset;
             for (INT x = 0; x < GRIDX; x++) {
+                resultSet.init(&ret_index, &out_dist_sqr);    // VERY IMPORTANT!!!
                 float g[3] = {(float)x, (float)y, (float)z};
                 bool  rt = kd_index.findNeighbors(resultSet, g, nanoflann::SearchParams());
                 assert(rt);
                 pcounter[x + yOffset] = ret_index;
             }
         }
-#ifndef NDEBUG
+#ifdef DEBUG
         gettimeofday(&planeEnd, NULL);
         std::cerr << "kdtree retrieval plane " << z << " takes " << GetElapsedSeconds(&planeStart, &planeEnd) << " seconds." << std::endl;
 #endif
@@ -146,7 +148,7 @@ int main(int argc, char **argv)
     // Increase counters in serial
     for (INT i = 0; i < totalGridPts; i++) counter[pcounter[i]]++;
 
-#ifndef NDEBUG /**** print diagnostic info ****/
+#ifdef DEBUG /**** print diagnostic info ****/
     // What's the total count all counters have?
     INT total = 0;
     for (INT i = 0; i < nPtcToUse; i++) total += counter[i];
@@ -187,16 +189,21 @@ int main(int argc, char **argv)
             emptyCellCount++;
 
             long grid[3];
-            for (int j = 0; j < 3; j++) grid[j] = std::lround(ptcBuf[i * 3 + j]);
+            grid[0] = std::lround(ptcBuf[i * 3] / EXTX * GRIDX);
+            grid[1] = std::lround(ptcBuf[i * 3 + 1] / EXTY * GRIDY);
+            grid[2] = std::lround(ptcBuf[i * 3 + 2] / EXTZ * GRIDZ);
             density[grid[2] * GRIDX * GRIDY + grid[1] * GRIDY + grid[0]] += 1.0f;
         }
-    // std::cerr << "percentage of voronoi cell without a grid point: " << 100.0f * emptyCellCount / nPtcToUse << std::endl;
-    std::cerr << "number of voronoi cell without a grid point: " << emptyCellCount << std::endl;
+    // std::cerr << "number of voronoi cell without a grid point: " << emptyCellCount << std::endl;
+    std::cerr << "percentage of voronoi cell without a grid point: " << 100.0f * emptyCellCount / nPtcToUse << std::endl;
 
     // Output the density field
+    gettimeofday(&start, NULL);
     FILE * f = fopen(argv[2], "w");
     size_t rt = fwrite(density, sizeof(float), totalGridPts, f);
     fclose(f);
+    gettimeofday(&end, NULL);
+    std::cerr << "writing density fields takes " << GetElapsedSeconds(&start, &end) << " seconds." << std::endl;
 
     delete[] density;
     delete[] pcounter;
