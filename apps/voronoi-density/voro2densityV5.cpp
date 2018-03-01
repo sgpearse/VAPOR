@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sys/time.h>
 #include <cassert>
+#include <cstring>
 
 #include <omp.h>
 
@@ -17,13 +18,13 @@
 #define GRIDX (1024)
 #define GRIDY (1024)
 #define GRIDZ (1024)
-#define EXTX  (M_PI * 2.0)
-#define EXTY  (M_PI * 2.0)
-#define EXTZ  (M_PI * 2.0)
 
 typedef unsigned int INT;
 
-const INT totalGridPts = (GRIDX) * (GRIDY) * (GRIDZ);
+const INT   totalGridPts = (GRIDX) * (GRIDY) * (GRIDZ);
+const float extX = M_PI * 2.0;
+const float extY = M_PI * 2.0;
+const float extZ = M_PI * 2.0;
 
 double GetElapsedSeconds(const struct timeval *begin, const struct timeval *end) { return (end->tv_sec - begin->tv_sec) + ((end->tv_usec - begin->tv_usec) / 1000000.0); }
 
@@ -32,9 +33,14 @@ float CalcDist2(const float *p, const INT *q)    // two points
     return ((p[0] - (float)q[0]) * (p[0] - (float)q[0]) + (p[1] - (float)q[1]) * (p[1] - (float)q[1]) + (p[2] - (float)q[2]) * (p[2] - (float)q[2]));
 }
 
-void ReadParticles2(const char *name,    // input
-                    INT &       len,     // number of particles
-                    float **    buf)
+float CalcLen(const float *p)    // one point
+{
+    return std::sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+}
+
+void ReadParticles2(const char *name,    // input:  filename
+                    INT &       len,     // output: number of particles
+                    float **    buf)         // output: data read from file
 {
     FILE * f = fopen(name, "r");
     float  tmp[2];
@@ -43,6 +49,45 @@ void ReadParticles2(const char *name,    // input
     *buf = new float[len * 3];
     rt = fread(*buf, sizeof(float), len * 3, f);
     fclose(f);
+}
+
+void FillHelicity(const char *xname,    // input:  location filename, which starts with `xlg`
+                  INT         len,      // input:  number of particles
+                  float *     buf)           // output: data read from file
+{
+    char vname[256], wname[256];
+    strcpy(vname, xname);
+    strcpy(wname, xname);
+    char *p = strstr(vname, "xlg");
+    assert(p);
+    *p = 'v';
+    p = strstr(wname, "xlg");
+    assert(p);
+    *p = 'w';
+
+    float *vbuf = new float[len * 3];
+    FILE * vf = fopen(vname, "r");
+    float  tmp[2];
+    size_t rt = fread(tmp, sizeof(float), 2, vf);
+    assert(len == (INT)tmp[0]);
+    rt = fread(vbuf, sizeof(float), len * 3, vf);
+    fclose(vf);
+
+    float *wbuf = new float[len * 3];
+    FILE * wf = fopen(wname, "r");
+    rt = fread(tmp, sizeof(float), 2, wf);
+    assert(len == (INT)tmp[0]);
+    rt = fread(wbuf, sizeof(float), len * 3, wf);
+    fclose(wf);
+
+    for (INT i = 0; i < len; i++) {
+        buf[i] = vbuf[i * 3] * wbuf[i * 3] + vbuf[i * 3 + 1] * wbuf[i * 3 + 1] + vbuf[i * 3 + 2] * wbuf[i * 3 + 2];
+        // uncomment the following line to normalize the helicity
+        // buf[i] /= CalcLen( vbuf + i*3 ) * CalcLen( wbuf + i*3 );
+    }
+
+    delete[] wbuf;
+    delete[] vbuf;
 }
 
 template<typename T> class PointCloud {
@@ -79,19 +124,22 @@ public:
         pts.resize(N);
         for (INT i = 0; i < N; i++) {
             INT idx = i * 3;
-            pts[i].x = buf[idx] / EXTX * (GRIDX - 1);
-            pts[i].y = buf[idx + 1] / EXTY * (GRIDY - 1);
-            pts[i].z = buf[idx + 2] / EXTZ * (GRIDZ - 1);
+            pts[i].x = buf[idx] / extX * (GRIDX - 1);
+            pts[i].y = buf[idx + 1] / extY * (GRIDY - 1);
+            pts[i].z = buf[idx + 2] / extZ * (GRIDZ - 1);
         }
     }
 };
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        printf("Usage: ./a.out .lag(input) .float(output)i\n");
+    if (argc < 3 || argc > 4)    // has to be either 3 or 4
+    {
+        printf("Usage: ./a.out .lag(input) .float(output) use_helicity(optional)\n");
         exit(1);
     }
+    bool use_helicity = false;
+    if (argc == 4) use_helicity = true;
     struct timeval start, end;
 
     // Read in particles
@@ -163,7 +211,7 @@ int main(int argc, char **argv)
     total = 0;
     for (INT i = 0; i < totalGridPts; i++)
         if (pcounter[i] == 0) total++;
-    std::cout << "Total grid points live in the cell of particle 0: " << total << std::endl;
+    std::cout << "Total grid points live in the cell of particle #0: " << total << std::endl;
 
     // Print some random counters
     for (INT i = 0; i < 10; i++) {
@@ -172,7 +220,16 @@ int main(int argc, char **argv)
     }
 #endif /**** finish printing diagnostic info ****/
 
-    // Each grid point calculates its own density
+    // Each grid point calculates its own density from either a mass of 1.0,
+    //   or its helicity.
+    float *contribution = new float[nPtcToUse];
+    if (use_helicity) {
+        std::cout << "Distributing helicity, instead of mass, of the particles!" << std::endl;
+        FillHelicity(argv[1], nPtcToUse, contribution);
+    } else {
+        for (INT i = 0; i < nPtcToUse; i++) contribution[i] = 1.0f;
+    }
+
     float *density = new float[totalGridPts];
 #pragma omp parallel for
     for (INT z = 0; z < GRIDZ; z++) {
@@ -182,24 +239,20 @@ int main(int argc, char **argv)
             for (INT x = 0; x < GRIDX; x++) {
                 INT idx = x + yOffset;
                 INT count = counter[pcounter[idx]];
-                density[idx] = 1.0f / (float)count;
+                density[idx] = contribution[pcounter[idx]] / (float)count;
             }
         }
     }
 
     // How many Voronoi cells do not contain a grid point?
     INT emptyCellCount = 0;
-    for (INT i = 0; i < nPtcToUse; i++)
+    for (INT i = 0; i < nPtcToUse; i++) {
         if (counter[i] == 0) {
             emptyCellCount++;
-            /*  This block of code distributes the entire weight of a particle to its closest grid point.
-            long  grid[3];
-            grid[0] = std::lround( ptcBuf[i*3  ] / EXTX * (GRIDX-1) );
-            grid[1] = std::lround( ptcBuf[i*3+1] / EXTY * (GRIDY-1) );
-            grid[2] = std::lround( ptcBuf[i*3+2] / EXTZ * (GRIDZ-1) );
-            density[ grid[2] * GRIDX * GRIDY + grid[1] * GRIDY + grid[0] ] += 1.0f;
-            */
-            float ptc[3] = {ptcBuf[i * 3] / EXTX * (GRIDX - 1), ptcBuf[i * 3 + 1] / EXTY * (GRIDY - 1), ptcBuf[i * 3 + 2] / EXTZ * (GRIDZ - 1)};
+            float c = contribution[i];
+
+            // Distribute the contribution of this particle to its eight enclosing grid points.
+            float ptc[3] = {ptcBuf[i * 3] / extX * (GRIDX - 1), ptcBuf[i * 3 + 1] / extY * (GRIDY - 1), ptcBuf[i * 3 + 2] / extZ * (GRIDZ - 1)};
             INT   g0[3] = {(INT)ptc[0], (INT)ptc[1], (INT)ptc[2]};    // grid indices
             if (g0[0] == GRIDX) g0[0]--;
             if (g0[1] == GRIDY) g0[1]--;
@@ -215,15 +268,16 @@ int main(int argc, char **argv)
             float total = 0.0f;
             for (int j = 0; j < 8; j++) total += dist[j];
 
-            density[g0[2] * GRIDX * GRIDY + g0[1] * GRIDY + g0[0]] += dist[0] / total;
-            density[g1[2] * GRIDX * GRIDY + g1[1] * GRIDY + g1[0]] += dist[1] / total;
-            density[g2[2] * GRIDX * GRIDY + g2[1] * GRIDY + g2[0]] += dist[2] / total;
-            density[g3[2] * GRIDX * GRIDY + g3[1] * GRIDY + g3[0]] += dist[3] / total;
-            density[g4[2] * GRIDX * GRIDY + g4[1] * GRIDY + g4[0]] += dist[4] / total;
-            density[g5[2] * GRIDX * GRIDY + g5[1] * GRIDY + g5[0]] += dist[5] / total;
-            density[g6[2] * GRIDX * GRIDY + g6[1] * GRIDY + g6[0]] += dist[6] / total;
-            density[g7[2] * GRIDX * GRIDY + g7[1] * GRIDY + g7[0]] += dist[7] / total;
+            density[g0[2] * GRIDX * GRIDY + g0[1] * GRIDY + g0[0]] += c * dist[0] / total;
+            density[g1[2] * GRIDX * GRIDY + g1[1] * GRIDY + g1[0]] += c * dist[1] / total;
+            density[g2[2] * GRIDX * GRIDY + g2[1] * GRIDY + g2[0]] += c * dist[2] / total;
+            density[g3[2] * GRIDX * GRIDY + g3[1] * GRIDY + g3[0]] += c * dist[3] / total;
+            density[g4[2] * GRIDX * GRIDY + g4[1] * GRIDY + g4[0]] += c * dist[4] / total;
+            density[g5[2] * GRIDX * GRIDY + g5[1] * GRIDY + g5[0]] += c * dist[5] / total;
+            density[g6[2] * GRIDX * GRIDY + g6[1] * GRIDY + g6[0]] += c * dist[6] / total;
+            density[g7[2] * GRIDX * GRIDY + g7[1] * GRIDY + g7[0]] += c * dist[7] / total;
         }
+    }
     std::cerr << "percentage of voronoi cell without a grid point: " << 100.0f * emptyCellCount / nPtcToUse << std::endl;
 
     // Output the density field
@@ -235,6 +289,7 @@ int main(int argc, char **argv)
     std::cerr << "writing density fields takes " << GetElapsedSeconds(&start, &end) << " seconds." << std::endl;
 
     delete[] density;
+    delete[] contribution;
     delete[] pcounter;
     delete[] counter;
     delete[] ptcBuf;
