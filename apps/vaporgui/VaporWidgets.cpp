@@ -110,7 +110,7 @@ std::string VLineEdit::GetEditText() const
     return text;
 }
 
-void VLineEdit::_returnPressed() { emit _pressed(); }
+void VLineEdit::_finished() { emit _editingFinished(); }
 
 VPushButton::VPushButton(QWidget *parent, const std::string &labelText, const std::string &buttonText) : VaporWidget(parent, labelText)
 {
