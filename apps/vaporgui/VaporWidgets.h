@@ -7,7 +7,7 @@ class QComboBox;
 class QCheckBox;
 class QPushButton;
 class QLineEdit;
-class QDoubleValidator;
+class QValidator;
 class QSpacerItem;
 class QHBoxLayout;
 class QSpinBox;
@@ -45,6 +45,7 @@ public:
     void SetMaximum(int maximum);
     void SetMinimum(int minimum);
     void SetValue(int value);
+    int  GetValue() const;
 
 signals:
     void _valueChanged(int);
@@ -65,8 +66,10 @@ class VLineEdit : public VaporWidget {
 public:
     VLineEdit(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "");
 
-    void SetEditText(const std::string &text);
-    void SetEditText(const QString &text);
+    void        SetEditText(const std::string &text);
+    void        SetEditText(const QString &text);
+    void        SetValidator(const QValidator *v);
+    std::string GetEditText() const;
 
 signals:
     void _pressed();
