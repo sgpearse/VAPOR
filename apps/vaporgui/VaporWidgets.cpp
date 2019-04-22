@@ -48,11 +48,17 @@ VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int defaultVal
     SetLabelText(QString::fromStdString(labelText));
     SetValue(defaultValue);
 
-    // connect( _spinBox, SIGNAL( valueChanged(int) ),
     connect(_spinBox, SIGNAL(editingFinished()), this, SLOT(_changed()));
 }
 
-void VSpinBox::_changed() { emit _valueChanged(); }
+void VSpinBox::_changed()
+{
+    double newValue = _spinBox->value();
+    if (newValue != _value) {
+        _value = newValue;
+        emit _valueChanged();
+    }
+}
 
 void VSpinBox::SetMaximum(int maximum) { _spinBox->setMaximum(maximum); }
 
@@ -60,7 +66,7 @@ void VSpinBox::SetMinimum(int minimum) { _spinBox->setMinimum(minimum); }
 
 void VSpinBox::SetValue(int value) { _spinBox->setValue(value); }
 
-int VSpinBox::GetValue() const { return _spinBox->value(); }
+int VSpinBox::GetValue() const { return _value; }
 
 VDoubleSpinBox::VDoubleSpinBox(QWidget *parent, const std::string &labelText, double defaultValue) : VaporWidget(parent, labelText)
 {
@@ -70,10 +76,17 @@ VDoubleSpinBox::VDoubleSpinBox(QWidget *parent, const std::string &labelText, do
     SetLabelText(QString::fromStdString(labelText));
     SetValue(defaultValue);
 
-    connect(_spinBox, SIGNAL(valueChanged(double)), this, SLOT(_changed(double)));
+    connect(_spinBox, SIGNAL(editingFinished()), this, SLOT(_changed()));
 }
 
-void VDoubleSpinBox::_changed(double value) { emit _valueChanged(value); }
+void VDoubleSpinBox::_changed()
+{
+    double newValue = _spinBox->value();
+    if (newValue != _value) {
+        _value = newValue;
+        emit _valueChanged();
+    }
+}
 
 void VDoubleSpinBox::SetMaximum(double maximum) { _spinBox->setMaximum(maximum); }
 
@@ -83,7 +96,7 @@ void VDoubleSpinBox::SetValue(double value) { _spinBox->setValue(value); }
 
 void VDoubleSpinBox::SetDecimals(int decimals) { _spinBox->setDecimals(decimals); }
 
-double VDoubleSpinBox::GetValue() const { return _spinBox->value(); }
+double VDoubleSpinBox::GetValue() const { return _value; }
 
 VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText)
 {
