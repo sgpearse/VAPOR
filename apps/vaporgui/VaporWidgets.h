@@ -91,7 +91,7 @@ class VLineEdit : public VaporWidget {
     Q_OBJECT
 
 public:
-    VLineEdit(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "");
+    VLineEdit(QWidget *parent, const std::string &labelText = "Label", const std::string &editText = "");
 
     void        SetEditText(const std::string &text);
     void        SetEditText(const QString &text);
@@ -105,7 +105,10 @@ protected:
     QLineEdit *_edit;
 
 private slots:
-    void _finished();
+    void _returnPressed();
+
+private:
+    std::string _text;
 };
 
 //
@@ -143,6 +146,7 @@ public:
     void        AddOption(const std::string &option, int index = 0);
     void        RemoveOption(int index);
     void        SetIndex(int index);
+    int         GetNumOfItems() const;
 
 private:
     QComboBox *_combo;

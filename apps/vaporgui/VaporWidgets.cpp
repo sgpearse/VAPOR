@@ -86,6 +86,8 @@ double VDoubleSpinBox::GetValue() const { return _spinBox->value(); }
 
 VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText)
 {
+    _text = editText;
+
     _edit = new QLineEdit(this);
     _layout->addWidget(_edit);
 
@@ -107,7 +109,23 @@ std::string VLineEdit::GetEditText() const
     return text;
 }
 
-void VLineEdit::_finished() { emit _editingFinished(); }
+void VLineEdit::_returnPressed()
+{
+    const QValidator *validator = _edit->validator();
+    if (validator != nullptr) {
+        QString                 text = _edit->text();
+        int                     i = 0;
+        const QValidator::State state = validator->validate(text, i);
+        if (state != QValidator::Acceptable)
+            _edit->setText(QString::fromStdString(_text));
+        else
+            _text = _edit->text().toStdString();
+    }
+
+    std::cout << _text << std::endl;
+
+    emit _editingFinished();
+}
 
 VPushButton::VPushButton(QWidget *parent, const std::string &labelText, const std::string &buttonText) : VaporWidget(parent, labelText)
 {
@@ -235,6 +253,7 @@ void VFileSelector::_setPathFromLineEdit()
 {
     QString filePath = _lineEdit->text();
     SetPath(filePath.toStdString());
+    emit _pathChanged();
 }
 
 VFileReader::VFileReader(QWidget *parent, const std::string &labelText, const std::string &filePath) : VFileSelector(parent, labelText, filePath, QFileDialog::FileMode::ExistingFile) {}
