@@ -43,7 +43,6 @@ void VaporWidget::SetLabelText(const QString &text) { _label->setText(text); }
 VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int defaultValue) : VaporWidget(parent, labelText)
 {
     _spinBox = new QSpinBox(this);
-    _spinBox->setFocusPolicy(Qt::NoFocus);
     _layout->addWidget(_spinBox);
 
     SetLabelText(QString::fromStdString(labelText));
@@ -65,7 +64,6 @@ int VSpinBox::GetValue() const { return _spinBox->value(); }
 VDoubleSpinBox::VDoubleSpinBox(QWidget *parent, const std::string &labelText, double defaultValue) : VaporWidget(parent, labelText)
 {
     _spinBox = new QDoubleSpinBox(this);
-    _spinBox->setFocusPolicy(Qt::NoFocus);
     _layout->addWidget(_spinBox);
 
     SetLabelText(QString::fromStdString(labelText));
@@ -89,7 +87,6 @@ double VDoubleSpinBox::GetValue() const { return _spinBox->value(); }
 VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText)
 {
     _edit = new QLineEdit(this);
-    _edit->setFocusPolicy(Qt::NoFocus);
     _layout->addWidget(_edit);
 
     SetLabelText(QString::fromStdString(labelText));
@@ -115,7 +112,6 @@ void VLineEdit::_finished() { emit _editingFinished(); }
 VPushButton::VPushButton(QWidget *parent, const std::string &labelText, const std::string &buttonText) : VaporWidget(parent, labelText)
 {
     _button = new QPushButton(this);
-    _button->setFocusPolicy(Qt::NoFocus);
     _layout->addWidget(_button);
 
     SetLabelText(QString::fromStdString(labelText));
