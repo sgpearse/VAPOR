@@ -40,7 +40,7 @@ void VaporWidget::SetLabelText(const std::string &text) { _label->setText(QStrin
 
 void VaporWidget::SetLabelText(const QString &text) { _label->setText(text); }
 
-VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int defaultValue) : VaporWidget(parent, labelText)
+VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int defaultValue) : VaporWidget(parent, labelText), _value(defaultValue)
 {
     _spinBox = new QSpinBox(this);
     _layout->addWidget(_spinBox);
@@ -68,7 +68,7 @@ void VSpinBox::SetValue(int value) { _spinBox->setValue(value); }
 
 int VSpinBox::GetValue() const { return _value; }
 
-VDoubleSpinBox::VDoubleSpinBox(QWidget *parent, const std::string &labelText, double defaultValue) : VaporWidget(parent, labelText)
+VDoubleSpinBox::VDoubleSpinBox(QWidget *parent, const std::string &labelText, double defaultValue) : VaporWidget(parent, labelText), _value(defaultValue)
 {
     _spinBox = new QDoubleSpinBox(this);
     _layout->addWidget(_spinBox);
@@ -98,7 +98,7 @@ void VDoubleSpinBox::SetDecimals(int decimals) { _spinBox->setDecimals(decimals)
 
 double VDoubleSpinBox::GetValue() const { return _value; }
 
-VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText)
+VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText), _validator(nullptr)
 {
     _text = editText;
 
@@ -111,32 +111,44 @@ VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::s
     connect(_edit, SIGNAL(returnPressed()), this, SLOT(_returnPressed()));
 }
 
-void VLineEdit::SetValidator(const QValidator *v) { _edit->setValidator(v); }
+VLineEdit::~VLineEdit()
+{
+    if (_validator != nullptr) {
+        delete _validator;
+        _validator = nullptr;
+    }
+}
+
+void VLineEdit::SetValidator(QValidator *v) { _validator = v; }
 
 void VLineEdit::SetEditText(const std::string &text) { SetEditText(QString::fromStdString(text)); }
 
-void VLineEdit::SetEditText(const QString &text) { _edit->setText(text); }
-
-std::string VLineEdit::GetEditText() const
+void VLineEdit::SetEditText(const QString &text)
 {
-    std::string text = _edit->text().toStdString();
-    return text;
+    _edit->setText(text);
+
+    // set local copy after line edit runs validation
+    _text = _edit->text().toStdString();
 }
+
+std::string VLineEdit::GetEditText() const { return _text; }
 
 void VLineEdit::_returnPressed()
 {
-    const QValidator *validator = _edit->validator();
-    if (validator != nullptr) {
-        QString                 text = _edit->text();
+    QString text = _edit->text();
+    // const QValidator* validator = _edit->validator();
+    // if ( validator != nullptr ) {
+    if (_validator != nullptr) {
         int                     i = 0;
-        const QValidator::State state = validator->validate(text, i);
-        if (state != QValidator::Acceptable)
-            _edit->setText(QString::fromStdString(_text));
-        else
-            _text = _edit->text().toStdString();
-    }
+        const QValidator::State state = _validator->validate(text, i);
 
-    std::cout << _text << std::endl;
+        if (state == QValidator::Acceptable) _text = _edit->text().toStdString();
+
+        _edit->setText(QString::fromStdString(_text));
+    } else {
+        _edit->setText(text);
+        _text = text.toStdString();
+    }
 
     emit _editingFinished();
 }
@@ -206,7 +218,8 @@ void VCheckBox::SetCheckState(bool checkState)
 
 void VCheckBox::_userClickedCheckbox() { emit _checkboxClicked(); }
 
-VFileSelector::VFileSelector(QWidget *parent, const std::string &labelText, const std::string &filePath, QFileDialog::FileMode fileMode) : VPushButton(parent, labelText, "Select")
+VFileSelector::VFileSelector(QWidget *parent, const std::string &labelText, const std::string &filePath, QFileDialog::FileMode fileMode)
+: VPushButton(parent, labelText, "Select"), _filePath(filePath), _filter("")
 {
     _fileMode = fileMode;
 
@@ -214,7 +227,6 @@ VFileSelector::VFileSelector(QWidget *parent, const std::string &labelText, cons
     _layout->addWidget(_lineEdit);
 
     SetLabelText(labelText);
-    _filePath = filePath;
     _lineEdit->setText(QString::fromStdString(filePath));
 
     connect(_button, SIGNAL(pressed()), this, SLOT(_openFileDialog()));
@@ -236,10 +248,16 @@ void VFileSelector::SetPath(const std::string &path)
     _lineEdit->setText(QString::fromStdString(path));
 }
 
+void VFileSelector::SetFileFilter(const QString &filter) { SetFileFilter(filter.toStdString()); }
+
+void VFileSelector::SetFileFilter(const std::string &filter) { _filter = filter; }
+
 void VFileSelector::_openFileDialog()
 {
     QString     title = "Select file containing seed points";
     QFileDialog fileDialog(this, title, QString::fromStdString(GetPath()));
+
+    fileDialog.setNameFilter(QString::fromStdString(_filter));
 
     QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen;
     fileDialog.setAcceptMode(acceptMode);
