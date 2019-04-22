@@ -49,13 +49,13 @@ public:
     int  GetValue() const;
 
 signals:
-    void _valueChanged(int);
+    void _valueChanged();
 
 protected:
     QSpinBox *_spinBox;
 
 private slots:
-    void _changed(int);
+    void _changed();
 };
 
 //
