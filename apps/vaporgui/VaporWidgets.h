@@ -207,7 +207,7 @@ public:
     std::string GetPath() const;
 
 protected:
-    VFileSelector(QWidget *parent, const std::string &labelText = "Label", const std::string &filePath = QDir::homePath().toStdString(),
+    VFileSelector(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString(),
                   QFileDialog::FileMode fileMode = QFileDialog::FileMode::ExistingFile);
 
     QFileDialog::FileMode _fileMode;
@@ -220,9 +220,9 @@ signals:
     void _pathChanged();
 
 private:
-    QLineEdit * _lineEdit;
-    std::string _filePath;
-    std::string _filter;
+    QLineEdit *  _lineEdit;
+    QFileDialog *_fileDialog;
+    std::string  _filePath;
 
     virtual bool _isFileOperable(const std::string &filePath) const = 0;
 };
@@ -234,7 +234,7 @@ class VFileReader : public VFileSelector {
     Q_OBJECT
 
 public:
-    VFileReader(QWidget *parent, const std::string &labelText = "Label", const std::string &filePath = QDir::homePath().toStdString());
+    VFileReader(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString());
 
 private:
     virtual bool _isFileOperable(const std::string &filePath) const;
@@ -247,7 +247,7 @@ class VFileWriter : public VFileSelector {
     Q_OBJECT
 
 public:
-    VFileWriter(QWidget *parent, const std::string &labelText = "Label", const std::string &filePath = QDir::homePath().toStdString());
+    VFileWriter(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString());
 
 private:
     virtual bool _isFileOperable(const std::string &filePath) const;
