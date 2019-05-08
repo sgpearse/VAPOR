@@ -219,8 +219,7 @@ VFileSelector::VFileSelector(QWidget *parent, const std::string &labelText, cons
     _layout->addWidget(_lineEdit);
 
     _fileDialog = new QFileDialog(this, QString::fromStdString(labelText), QString::fromStdString(GetPath()));
-    // QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen;
-    //_fileDialog->setAcceptMode( acceptMode );
+
     _fileMode = fileMode;
     _fileDialog->setFileMode(_fileMode);
 
