@@ -215,6 +215,7 @@ protected:
                   QFileDialog::FileMode fileMode = QFileDialog::FileMode::ExistingFile);
 
     QFileDialog::FileMode _fileMode;
+    QFileDialog *         _fileDialog;
 
 private slots:
     void _openFileDialog();
@@ -224,9 +225,8 @@ signals:
     void _pathChanged();
 
 private:
-    QLineEdit *  _lineEdit;
-    QFileDialog *_fileDialog;
-    std::string  _filePath;
+    QLineEdit * _lineEdit;
+    std::string _filePath;
 
     virtual bool _isFileOperable(const std::string &filePath) const = 0;
 };
