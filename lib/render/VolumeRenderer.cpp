@@ -294,9 +294,17 @@ bool VolumeRenderer::_usingColorMapData() const
     return false;
 }
 
-void VolumeRenderer::_saveOriginalViewport() { glGetIntegerv(GL_VIEWPORT, _originalViewport); }
+void VolumeRenderer::_saveOriginalViewport()
+{
+    glGetIntegerv(GL_VIEWPORT, _originalViewport);
+    printf("DVR: Saved viewport [%i, %i, %i, %i]\n", _originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
+}
 
-void VolumeRenderer::_restoreOriginalViewport() { glViewport(_originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]); }
+void VolumeRenderer::_restoreOriginalViewport()
+{
+    glViewport(_originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
+    printf("DVR: Restored viewport [%i, %i, %i, %i]\n", _originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
+}
 
 void VolumeRenderer::_initializeFramebuffer(bool fast)
 {
@@ -311,7 +319,9 @@ void VolumeRenderer::_initializeFramebuffer(bool fast)
     ivec2 fbSize(_originalViewport[2], _originalViewport[3]);
     fbSize /= _framebufferRatio;
     _framebuffer.SetSize(fbSize.x, fbSize.y);
+    printf("DVR: FB(%i, %i)\n", fbSize.x, fbSize.y);
 
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &_originalFB);
     _framebuffer.MakeRenderTarget();
     glClearColor(0, 0, 0, 0);
     glDepthMask(true);
@@ -321,6 +331,7 @@ void VolumeRenderer::_initializeFramebuffer(bool fast)
 int VolumeRenderer::_renderFramebufferToDisplay()
 {
     _framebuffer.UnBind();
+    glBindFramebuffer(GL_FRAMEBUFFER, _originalFB);
     _restoreOriginalViewport();
     SmartShaderProgram framebufferShader = _glManager->shaderManager->GetShader("Framebuffer");
     if (!framebufferShader.IsValid()) return -1;

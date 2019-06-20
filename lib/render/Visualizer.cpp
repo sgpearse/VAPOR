@@ -38,6 +38,7 @@
 #include <vapor/DataStatus.h>
 #include <vapor/Visualizer.h>
 #include <vapor/FileUtils.h>
+#include <vapor/ShaderManager.h>
 
 #include <vapor/common.h>
 #include "vapor/GLManager.h"
@@ -163,6 +164,16 @@ int Visualizer::paintEvent(bool fast)
 
     _clearFramebuffer();
 
+    int width = viewport[2] - viewport[0];
+    int height = viewport[3] - viewport[1];
+    width = 2000;
+    height = 2000;
+    _framebuffer.SetSize(width, height);
+    _framebuffer.MakeRenderTarget();
+    glClearColor(0, 0, 0, 0);
+    glDepthMask(true);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     _loadMatricesFromViewpointParams();
     if (_configureLighting()) return -1;
 
@@ -222,6 +233,42 @@ int Visualizer::paintEvent(bool fast)
     GL_ERR_BREAK();
     if (CheckGLError()) return -1;
 
+    static bool         initialized = false;
+    static unsigned int VAO = 0;
+    static unsigned int VBO = 0;
+    static unsigned int texID = 0;
+    static float        BL = -1;
+    static float        data[] = {BL, BL, 0, 0, 1, BL, 1, 0, BL, 1, 0, 1,
+
+                           BL, 1,  0, 1, 1, BL, 1, 0, 1,  1, 1, 1};
+    if (!initialized) {
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), NULL);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+        glGenTextures(1, &texID);
+        glBindTexture(GL_TEXTURE_2D, texID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+
+    _framebuffer.UnBind();
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    glBindVertexArray(VAO);
+    SmartShaderProgram shader = _glManager->shaderManager->GetSmartShader("Framebuffer");
+    shader->SetSampler("colorBuffer", *_framebuffer.GetColorTexture());
+    shader->SetSampler("depthBuffer", *_framebuffer.GetDepthTexture());
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
     _insideGLContext = false;
     return rc;
 }
@@ -257,6 +304,9 @@ int Visualizer::InitializeGL(GLManager *glManager)
     }
 
     if (GetVendor() == MESA) { SetErrMsg("GL Vendor String is MESA.\nGraphics drivers may need to be reinstalled"); }
+
+    _framebuffer.EnableDepthBuffer();
+    _framebuffer.Generate();
 
     return 0;
 }
@@ -446,7 +496,11 @@ int Visualizer::_captureImage(std::string path)
 
     ViewpointParams *vpParams = getActiveViewpointParams();
     size_t           width, height;
-    vpParams->GetWindowSize(width, height);
+    // vpParams->GetWindowSize(width, height);
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    width = viewport[2] - viewport[0];
+    height = viewport[3] - viewport[1];
 
     bool geoTiffOutput = vpParams->GetProjectionType() == ViewpointParams::MapOrthographic && (FileUtils::Extension(path) == "tif" || FileUtils::Extension(path) == "tiff");
 
@@ -558,14 +612,18 @@ bool Visualizer::_getPixelData(unsigned char *data) const
     ViewpointParams *vpParams = getActiveViewpointParams();
 
     size_t width, height;
-    vpParams->GetWindowSize(width, height);
+    // vpParams->GetWindowSize(width, height);
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    width = viewport[2] - viewport[0];
+    height = viewport[3] - viewport[1];
 
     // Must clear previous errors first.
     while (glGetError() != GL_NO_ERROR)
         ;
 
-    glReadBuffer(GL_BACK);
-    glDisable(GL_SCISSOR_TEST);
+    //    glReadBuffer(GL_BACK);
+    //    glDisable(GL_SCISSOR_TEST);
 
     // Calling pack alignment ensures that we can grab the any size window
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
