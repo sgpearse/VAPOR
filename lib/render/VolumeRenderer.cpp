@@ -294,17 +294,9 @@ bool VolumeRenderer::_usingColorMapData() const
     return false;
 }
 
-void VolumeRenderer::_saveOriginalViewport()
-{
-    glGetIntegerv(GL_VIEWPORT, _originalViewport);
-    printf("DVR: Saved viewport [%i, %i, %i, %i]\n", _originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
-}
+void VolumeRenderer::_saveOriginalViewport() { glGetIntegerv(GL_VIEWPORT, _originalViewport); }
 
-void VolumeRenderer::_restoreOriginalViewport()
-{
-    glViewport(_originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
-    printf("DVR: Restored viewport [%i, %i, %i, %i]\n", _originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]);
-}
+void VolumeRenderer::_restoreOriginalViewport() { glViewport(_originalViewport[0], _originalViewport[1], _originalViewport[2], _originalViewport[3]); }
 
 void VolumeRenderer::_initializeFramebuffer(bool fast)
 {
