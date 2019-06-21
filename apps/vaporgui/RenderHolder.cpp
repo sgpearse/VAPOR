@@ -182,7 +182,7 @@ RenderHolder::RenderHolder(QWidget *parent, ControlExec *ce, const vector<QWidge
     heightEdit = new QLineEdit();
     heightEdit->setValidator(new QIntValidator(1, 10000, this));
 
-    connect(heightEdit, SIGNAL(textChanged(QString)), this, SLOT(on_size_textChanged(QString)));
+    connect(heightEdit, SIGNAL(textChanged(QString)), this, SLOT(_size_textChanged(QString)));
 
     widthLabel = new QLabel;
 
@@ -194,7 +194,7 @@ RenderHolder::RenderHolder(QWidget *parent, ControlExec *ce, const vector<QWidge
     this->layout()->addWidget(item);
 }
 
-void RenderHolder::on_size_textChanged(QString text)
+void RenderHolder::_size_textChanged(QString text)
 {
     int              width = text.toInt();
     ViewpointParams *VP = _controlExec->GetParamsMgr()->GetViewpointParams(_getStateParams()->GetActiveVizName());
