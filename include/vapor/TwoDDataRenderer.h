@@ -51,6 +51,7 @@ public:
 protected:
     int _initializeGL();
 
+    int _loadTF();
     int _paintGL(bool fast);
 
     int GetMesh(DataMgr *dataMgr, GLfloat **verts, GLfloat **normals, GLsizei &nverts, GLsizei &width, GLsizei &height, GLuint **indices, GLsizei &nindices, bool &structuredMesh);
@@ -141,9 +142,10 @@ private:
     GLsizei  _nindices;
     GLsizei  _nverts;
 
-    GLuint   _cMapTexID;
-    GLfloat *_colormap;
-    size_t   _colormapsize;
+    GLuint         _cMapTexID;
+    GLfloat *      _colormap;
+    vector<double> _colormapRange;
+    size_t         _colormapsize;
 
     bool _gridStateDirty() const;
 

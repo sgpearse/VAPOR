@@ -80,7 +80,7 @@ int TwoDRenderer::_initializeGL()
     return (0);
 }
 
-int TwoDRenderer::_paintGL(bool)
+int TwoDRenderer::_generateMesh()
 {
     // Get the 2D texture
     //
@@ -102,14 +102,22 @@ int TwoDRenderer::_paintGL(bool)
 
         _texCoords = (GLfloat *)_sb_texCoords.Alloc(_meshWidth * _meshHeight * 2 * sizeof(*_texCoords));
         _computeTexCoords(_texCoords, _meshWidth, _meshHeight);
-
-        _renderMeshUnAligned();
     } else {
         VAssert(_meshWidth == _texWidth);
         VAssert(_meshHeight == _texHeight);
-
-        _renderMeshAligned();
     }
+
+    return (0);
+}
+
+int TwoDRenderer::_paintGL(bool)
+{
+    if (_generateMesh() < 0) return -1;
+
+    if (!_gridAligned)
+        _renderMeshUnAligned();
+    else
+        _renderMeshAligned();
 
     GL_ERR_BREAK();
 
@@ -295,3 +303,7 @@ void TwoDRenderer::_computeTexCoords(GLfloat *tcoords, size_t w, size_t h) const
         }
     }
 }
+
+int TwoDRenderer::OSPRayUpdate(OSPModel world) {}
+
+void TwoDRenderer::OSPRayDelete(OSPModel world) {}
