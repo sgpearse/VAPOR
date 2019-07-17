@@ -207,7 +207,8 @@ int Visualizer::paintEvent(bool fast)
 
     glFlush();
 
-    if (_renderOSPRay() < 0) return -1;
+    if (!fast)
+        if (_renderOSPRay() < 0) return -1;
 
     int captureImageSuccess = 0;
     if (_imageCaptureEnabled) {
@@ -733,7 +734,10 @@ void Visualizer::_deleteFlaggedRenderers()
 
     for (auto it = _renderersToDestroy.begin(); it != _renderersToDestroy.end(); ++it) {
         Renderer *ren = *it;
-        if (ren) delete ren;
+        if (ren) {
+            ren->OSPRayDelete(_world);
+            delete ren;
+        }
     }
     _renderersToDestroy.clear();
 }
