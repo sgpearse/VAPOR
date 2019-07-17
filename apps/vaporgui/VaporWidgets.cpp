@@ -105,7 +105,7 @@ VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::s
 
     SetEditText(QString::fromStdString(editText));
 
-    connect(_edit, SIGNAL(returnPressed()), this, SLOT(_returnPressed()));
+    connect(_edit, SIGNAL(editingFinished()), this, SLOT(_relaySignal()));
 }
 
 VLineEdit::~VLineEdit()
@@ -166,7 +166,7 @@ void VLineEdit::SetEditText(const QString &text)
 
 std::string VLineEdit::GetEditText() const { return _text; }
 
-void VLineEdit::_returnPressed()
+void VLineEdit::_relaySignal()
 {
     QString text = _edit->text();
     if (_validator != nullptr) {
