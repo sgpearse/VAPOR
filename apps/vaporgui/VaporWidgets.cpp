@@ -96,8 +96,11 @@ void VDoubleSpinBox::SetDecimals(int decimals) { _spinBox->setDecimals(decimals)
 
 double VDoubleSpinBox::GetValue() const { return _value; }
 
+//
+// ====================================
+//
+
 VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::string &editText) : VaporWidget(parent, labelText)
-//_validator( nullptr )
 {
     _text = editText;
 
@@ -109,63 +112,13 @@ VLineEdit::VLineEdit(QWidget *parent, const std::string &labelText, const std::s
     connect(_edit, SIGNAL(editingFinished()), this, SLOT(_relaySignal()));
 }
 
-VLineEdit::~VLineEdit()
-{
-    //    if (_validator != nullptr) {
-    //        delete _validator;
-    //        _validator = nullptr;
-    //    }
-}
-
-void VLineEdit::SetExtents(int min, int max)
-{
-    //    assert( _validator );
-
-    //    QIntValidator* val = qobject_cast<QIntValidator*>(_validator);
-    //    assert( val );
-
-    //    val->setRange( min, max );
-}
-
-void VLineEdit::SetExtents(double min, double max)
-{
-    //    assert( _validator );
-
-    //    QDoubleValidator* val = qobject_cast<QDoubleValidator*>(_validator);
-    //    assert( val );
-
-    //    val->setRange( min, max );
-}
-
-void VLineEdit::SetIntType()
-{
-    //    if (_validator != nullptr)
-    //        delete _validator;
-    //
-    //    _validator = new QIntValidator( this );
-    //    _edit->setValidator( _validator );
-}
-
-void VLineEdit::SetDoubleType()
-{
-    //    if (_validator != nullptr)
-    //        delete _validator;
-    //
-    //    _validator = new QDoubleValidator( this );
-    //    _edit->setValidator( _validator );
-}
-
-// void VLineEdit::SetValidator( QValidator* v ) {
-//    _validator = v;
-//}
+VLineEdit::~VLineEdit() {}
 
 void VLineEdit::SetEditText(const std::string &text) { SetEditText(QString::fromStdString(text)); }
 
 void VLineEdit::SetEditText(const QString &text)
 {
     _edit->setText(text);
-
-    // set local copy after line edit runs validation
     _text = _edit->text().toStdString();
 }
 
@@ -174,22 +127,15 @@ std::string VLineEdit::GetEditText() const { return _text; }
 void VLineEdit::_relaySignal()
 {
     QString text = _edit->text();
-    //    if ( _validator != nullptr ) {
-    //        int i=0;
-    //        const QValidator::State state = _validator->validate( text, i );
-    //
-    //        if ( state == QValidator::Acceptable )
-    //            _text = _edit->text().toStdString();
-    //
-    //        _edit->setText( QString::fromStdString( _text ) );
-    //    }
-    //    else {
     _edit->setText(text);
     _text = text.toStdString();
-    //    }
 
     emit _editingFinished();
 }
+
+//
+// ====================================
+//
 
 VPushButton::VPushButton(QWidget *parent, const std::string &labelText, const std::string &buttonText) : VaporWidget(parent, labelText)
 {
