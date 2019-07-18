@@ -140,25 +140,29 @@ protected:
     void ComputeNormals(const GLfloat *verts, GLsizei w, GLsizei h, GLfloat *normals);
 
 private:
-    GLuint        _textureID;
+    GLuint _textureID;
+
+protected:
     const GLvoid *_texture;
-    GLfloat *     _texCoords;
-    GLsizei       _texWidth;
-    GLsizei       _texHeight;
-    GLint         _texInternalFormat;
-    GLenum        _texFormat;
-    GLenum        _texType;
-    size_t        _texelSize;
-    bool          _gridAligned;
-    bool          _structuredMesh;
-    GLfloat *     _verts;
-    GLfloat *     _normals;
-    GLuint *      _indices;
-    GLsizei       _meshWidth;
-    GLsizei       _meshHeight;
-    GLsizei       _nindices;
-    GLsizei       _nverts;
-    SmartBuf      _sb_texCoords;
+
+private:
+    GLfloat *_texCoords;
+    GLsizei  _texWidth;
+    GLsizei  _texHeight;
+    GLint    _texInternalFormat;
+    GLenum   _texFormat;
+    GLenum   _texType;
+    size_t   _texelSize;
+    bool     _gridAligned;
+    bool     _structuredMesh;
+    GLfloat *_verts;
+    GLfloat *_normals;
+    GLuint * _indices;
+    GLsizei  _meshWidth;
+    GLsizei  _meshHeight;
+    GLsizei  _nindices;
+    GLsizei  _nverts;
+    SmartBuf _sb_texCoords;
 
     GLuint _VAO, _VBO, _dataVBO, _EBO;
 
@@ -172,6 +176,12 @@ private:
 public:
     int  OSPRayUpdate(OSPModel world);
     void OSPRayDelete(OSPModel world);
+
+protected:
+    OSPGeometry _ospMesh = nullptr;
+    OSPMaterial _material = nullptr;
+    OSPTexture  _ospColorTexture = nullptr;
+    OSPTexture  _ospOpacityTexture = nullptr;
 };
 };    // namespace VAPoR
 

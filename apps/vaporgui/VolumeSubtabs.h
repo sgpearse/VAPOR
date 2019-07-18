@@ -7,6 +7,7 @@
 #include "Flags.h"
 #include <vapor/MapperFunction.h>
 #include <vapor/VolumeParams.h>
+#include "OSPRayEnableCheckbox.h"
 
 namespace VAPoR {
 class ControlExec;
@@ -55,8 +56,8 @@ private slots:
     void ospray_clicked(bool checked);
 
 private:
-    VAPoR::VolumeParams *_params;
-    QCheckBox *          _osprayCheckBox;
+    VAPoR::VolumeParams * _params;
+    OSPRayEnableCheckbox *_osprayCheckBox;
 };
 
 class VolumeGeometrySubtab : public QWidget, public Ui_VolumeGeometryGUI {

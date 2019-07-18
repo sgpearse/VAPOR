@@ -247,7 +247,10 @@ int Visualizer::_renderOSPRay()
         return -1;
     }
 
-    if (!_renderer) { _renderer = ospNewRenderer("scivis"); }
+    if (!_renderer) {
+        _renderer = ospNewRenderer("scivis");
+        ospSet1b(_renderer, "oneSidedLighting", false);
+    }
     if (!_camera) {
         _camera = ospNewCamera("perspective");
         ospSetObject(_renderer, "camera", _camera);
@@ -318,7 +321,7 @@ int Visualizer::_renderOSPRay()
         osp::vec2i size;
         size.x = width;
         size.y = height;
-        _framebuffer = ospNewFrameBuffer(size, OSP_FB_SRGBA, OSP_FB_COLOR | /*OSP_FB_DEPTH |*/ OSP_FB_ACCUM);
+        _framebuffer = ospNewFrameBuffer(size, OSP_FB_RGBA8, OSP_FB_COLOR | /*OSP_FB_DEPTH |*/ OSP_FB_ACCUM);
         _framebufferSize = size;
     }
 
