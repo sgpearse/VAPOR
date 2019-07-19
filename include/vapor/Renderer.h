@@ -26,6 +26,7 @@
 #include <vapor/ParamsMgr.h>
 #include <vapor/RenderParams.h>
 #include <ospray/ospray.h>
+#include <glm/fwd.hpp>
 
 namespace VAPoR {
 
@@ -258,6 +259,11 @@ protected:
     //! Obtain current texture for the renderer colorbar.  This is an array of 3x256x256 bytes.
     //! \return 0 if successful
     int makeColorbarTexture();
+
+    glm::mat4 _getDatasetTransformMatrix() const;
+    void      _applyDatasetTransform();
+    glm::mat4 _getRendererTransformMatrix() const;
+    void      _applyRendererTransform();
 
     //! All OpenGL rendering is performed in the pure virtual paintGL method.
     virtual int _paintGL(bool fast) = 0;

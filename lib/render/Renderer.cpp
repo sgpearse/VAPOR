@@ -114,14 +114,44 @@ double Renderer::_getDefaultZ(DataMgr *dataMgr, size_t ts) const
     return (minExts.size() == 3 ? minExts[2] : 0.0);
 }
 
-int Renderer::paintGL(bool fast)
+glm::mat4 Renderer::_getDatasetTransformMatrix() const
+{
+    VAPoR::ViewpointParams *vpParams = _paramsMgr->GetViewpointParams(_winName);
+    vector<double>          scales, rotations, translations, origin;
+    Transform *             t = vpParams->GetTransform(GetMyDatasetName());
+    VAssert(t);
+    scales = t->GetScales();
+    rotations = t->GetRotations();
+    translations = t->GetTranslations();
+    origin = t->GetOrigin();
+
+    MatrixManager *mm = _glManager->matrixManager;
+    mm->PushMatrix();
+    mm->LoadIdentity();
+
+    mm->Translate(translations[0], translations[1], translations[2]);
+    mm->Translate(origin[0], origin[1], origin[2]);
+    mm->Rotate(glm::radians(rotations[0]), 1, 0, 0);
+    mm->Rotate(glm::radians(rotations[1]), 0, 1, 0);
+    mm->Rotate(glm::radians(rotations[2]), 0, 0, 1);
+    mm->Scale(scales[0], scales[1], scales[2]);
+    mm->Translate(-origin[0], -origin[1], -origin[2]);
+
+    glm::mat4 m = mm->GetCurrentMatrix();
+    mm->PopMatrix();
+
+    return m;
+}
+void Renderer::_applyDatasetTransform()
+{
+    MatrixManager *mm = _glManager->matrixManager;
+    mm->SetCurrentMatrix(mm->GetCurrentMatrix() * _getDatasetTransformMatrix());
+}
+
+glm::mat4 Renderer::_getRendererTransformMatrix() const
 {
     const RenderParams *rParams = GetActiveParams();
     MatrixManager *     mm = _glManager->matrixManager;
-
-    if (!rParams->IsEnabled()) return (0);
-
-    _timestep = rParams->GetCurrentTimestep();
 
     vector<double> translate = rParams->GetTransform()->GetTranslations();
     vector<double> rotate = rParams->GetTransform()->GetRotations();
@@ -135,8 +165,8 @@ int Renderer::paintGL(bool fast)
     Transform *    datasetTransform = _paramsMgr->GetViewpointParams(_winName)->GetTransform(_dataSetName);
     vector<double> datasetScales = datasetTransform->GetScales();
 
-    mm->MatrixModeModelView();
     mm->PushMatrix();
+    mm->LoadIdentity();
 
     mm->Scale(1 / datasetScales[0], 1 / datasetScales[1], 1 / datasetScales[2]);
 
@@ -149,6 +179,33 @@ int Renderer::paintGL(bool fast)
     mm->Translate(-origin[0], -origin[1], -origin[2]);
 
     mm->Scale(datasetScales[0], datasetScales[1], datasetScales[2]);
+
+    glm::mat4 m = mm->GetCurrentMatrix();
+    mm->PopMatrix();
+
+    return m;
+}
+
+void Renderer::_applyRendererTransform()
+{
+    MatrixManager *mm = _glManager->matrixManager;
+    mm->SetCurrentMatrix(mm->GetCurrentMatrix() * _getRendererTransformMatrix());
+}
+
+int Renderer::paintGL(bool fast)
+{
+    const RenderParams *rParams = GetActiveParams();
+    MatrixManager *     mm = _glManager->matrixManager;
+
+    if (!rParams->IsEnabled()) return (0);
+
+    _timestep = rParams->GetCurrentTimestep();
+
+    mm->MatrixModeModelView();
+    mm->PushMatrix();
+
+    _applyDatasetTransform();
+    _applyRendererTransform();
 
     int rc = _paintGL(fast);
 
