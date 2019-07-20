@@ -50,6 +50,8 @@ const string ViewpointParams::_numLightsTag = "NumLights";
 const string ViewpointParams::m_windowSizeTag = "WindowSize";
 const string ViewpointParams::m_stretchFactorsTag = "StretchFactors";
 const string ViewpointParams::m_fieldOfView = "FieldOfView";
+const string ViewpointParams::m_nearClip = "FarClippingDistance";
+const string ViewpointParams::m_farClip = "NearClippingDistance";
 const string ViewpointParams::_orthoProjectionSizeTag = "OrthoProjectionSize";
 const string ViewpointParams::_projectionTypeTag = "ProjectionType";
 
@@ -272,7 +274,7 @@ void ViewpointParams::SetFOV(float v)
     SetValueDouble(m_fieldOfView, "Set Field of View", v);
 }
 
-double ViewpointParams::GetFOV() const
+float ViewpointParams::GetFOV() const
 {
     double defaultv = 45.0;
     double v = GetValueDouble(m_fieldOfView, defaultv);
@@ -280,6 +282,11 @@ double ViewpointParams::GetFOV() const
     if (v > 90) v = 90;
     return (v);
 }
+
+void  ViewpointParams::SetFarClip(float v) { SetValueDouble(m_farClip, "Far clipping distance", v); }
+float ViewpointParams::GetFarClip() const { return GetValueDouble(m_farClip, 1000000); }
+void  ViewpointParams::SetNearClip(float v) { SetValueDouble(m_nearClip, "Near clipping distance", v); }
+float ViewpointParams::GetNearClip() const { return GetValueDouble(m_nearClip, 0.01); }
 
 void ViewpointParams::SetOrthoProjectionSize(float f) { SetValueDouble(_orthoProjectionSizeTag, "Set orthographic projection size", f); }
 

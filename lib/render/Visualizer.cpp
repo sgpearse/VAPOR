@@ -201,8 +201,6 @@ int Visualizer::paintEvent(bool fast)
     return rc;
 }
 
-#include <vapor/VolumeRenderer.h>
-
 bool Visualizer::_needToRenderOSPRay() const
 {
     for (int i = 0; i < _renderers.size(); i++) {
@@ -231,10 +229,13 @@ int Visualizer::_renderOSPRay()
     ViewpointParams *viewpointParams = _paramsMgr->GetViewpointParams(_winName);
     Viewpoint *      viewpoint = viewpointParams->getCurrentViewpoint();
     double           m[16];
-    double           cameraPos[3], cameraUp[3], cameraDir[3];
+    double           cameraPosD[3], cameraUpD[3], cameraDirD[3];
     _glManager->matrixManager->GetDoublev(MatrixManager::Mode::ModelView, m);
-    viewpoint->ReconstructCamera(m, cameraPos, cameraUp, cameraDir);
-    size_t width, height;
+    viewpoint->ReconstructCamera(m, cameraPosD, cameraUpD, cameraDirD);
+    glm::vec3 cameraPos(cameraPosD[0], cameraPosD[1], cameraPosD[2]);
+    glm::vec3 cameraDir(cameraDirD[0], cameraDirD[1], cameraDirD[2]);
+    glm::vec3 cameraUp(cameraUpD[0], cameraUpD[1], cameraUpD[2]);
+    size_t    width, height;
     viewpointParams->GetWindowSize(width, height);
 
     float fov = viewpointParams->GetFOV();
@@ -280,6 +281,13 @@ int Visualizer::_renderOSPRay()
     }
 
     if (!_needToRenderOSPRay()) return 0;
+
+    float *glDepthBuffer = new float[width * height];
+    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, (GLvoid *)glDepthBuffer);
+    OSPTexture depthTexture = OSPRayGetDepthTextureFromOpenGLPerspective(fov, aspect, viewpointParams->GetNearClip(), viewpointParams->GetFarClip(), cameraDir, cameraUp, glDepthBuffer, width, height);
+    delete[] glDepthBuffer;
+    ospSetObject(_renderer, "maxDepthTexture", depthTexture);
+    ospRelease(depthTexture);
 
     ospCommit(_world);
     ospCommit(_renderer);
