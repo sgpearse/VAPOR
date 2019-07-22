@@ -27,6 +27,7 @@
 #include "AnnotationEventRouter.h"
 #include "NavigationEventRouter.h"
 #include "SettingsEventRouter.h"
+#include "OSPRayEventRouter.h"
 #include "RenderEventRouter.h"
 #include "RenderHolder.h"
 #include "TabManager.h"
@@ -37,6 +38,7 @@ using namespace VAPoR;
 const string TabManager::_renderersTabName = "Renderers";
 const string TabManager::_navigationTabName = "Navigation";
 const string TabManager::_settingsTabName = "Settings";
+const string TabManager::_osprayTabName = "OSPRay";
 
 TabManager::TabManager(QWidget *parent, ControlExec *ce) : QTabWidget(parent)
 {
@@ -44,7 +46,7 @@ TabManager::TabManager(QWidget *parent, ControlExec *ce) : QTabWidget(parent)
 
     // order of vector is order of display
     //
-    _tabNames = {_renderersTabName, _navigationTabName, _settingsTabName};
+    _tabNames = {_renderersTabName, _navigationTabName, _settingsTabName, _osprayTabName};
 
     // Initialize arrays of widgets and types
     //
@@ -64,6 +66,7 @@ TabManager::TabManager(QWidget *parent, ControlExec *ce) : QTabWidget(parent)
     setElideMode(Qt::ElideNone);
 
     _createAllDefaultTabs();
+    this->tabBar()->setTabTextColor(3, QColor::fromRgb(0, 0, 255));
 
     show();
 
@@ -422,6 +425,10 @@ void TabManager::_createAllDefaultTabs()
     er = new SettingsEventRouter(parent, _controlExec);
     _installTab(_settingsTabName, er->GetType(), er);
 
+    parent = _getSubTabWidget(_osprayTabName);
+    er = new OSPRayEventRouter(parent, _controlExec);
+    _installTab(_osprayTabName, er->GetType(), er);
+
     // Create renderers from render factory
     //
     vector<string> renderNames = RenderEventRouterFactory::Instance()->GetFactoryNames();
@@ -495,6 +502,7 @@ void TabManager::_installWidgets()
             string tab = _tabNames[i];
 
             QScrollArea *myScrollArea = new QScrollArea(_tabWidgets[tab]);
+            if (tab == _osprayTabName) myScrollArea->setWidgetResizable(true);
 
             string      subTabName = _subTabNames[tab][j];
             QTabWidget *qtw = (QTabWidget *)_tabWidgets[tab];

@@ -37,6 +37,7 @@
 
 namespace VAPoR {
 
+class OSPRayParams;
 //!
 //!
 
@@ -344,6 +345,13 @@ public:
     //! \retval ptr DatasetsParams instance that is applicable.
     //
     DatasetsParams *GetDatasetsParams() const { return ((DatasetsParams *)_otherParams->GetParams(DatasetsParams::GetClassType())); };
+
+    //! Obtain the OSPRayParams that are applicable in a particular Visualizer
+    //! window.
+    //!
+    //! \retval ptr OSPRayParams instance that is applicable.
+    //
+    OSPRayParams *GetOSPRayParams() const;
 
     //! Optain any paramers registered by the application
     //!
