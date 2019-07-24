@@ -218,6 +218,8 @@ int Visualizer::_renderOSPRay()
         return -1;
     }
 
+    OSPRayParams *op = _paramsMgr->GetOSPRayParams();
+
     if (!_renderer) {
         _renderer = ospNewRenderer("scivis");
         ospSet1b(_renderer, "oneSidedLighting", false);
@@ -266,7 +268,11 @@ int Visualizer::_renderOSPRay()
         ospRelease(lights);
     }
 
+    ospSetf(_ambient, "intensity", op->GetValueDouble(op->_ambientIntensity, 0));
+    ospCommit(_ambient);
+
     ospSet3f(_cameraSpotlight, "direction", cameraDir[0], cameraDir[1], cameraDir[2]);
+    ospSetf(_cameraSpotlight, "intensity", op->GetValueDouble(op->_spotlightIntensity, 0.6));
     ospCommit(_cameraSpotlight);
 
     if (!_world) {
@@ -291,7 +297,6 @@ int Visualizer::_renderOSPRay()
     ospSetObject(_renderer, "maxDepthTexture", depthTexture);
     ospRelease(depthTexture);
 
-    OSPRayParams *op = _paramsMgr->GetOSPRayParams();
     ospSet1i(_renderer, "spp", op->GetValueLong(op->_samplesPerPixelTag, 1));
     ospSet1i(_renderer, "aoSamples", op->GetAOSamples());
 

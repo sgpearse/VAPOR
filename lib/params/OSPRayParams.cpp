@@ -33,6 +33,8 @@ const string OSPRayParams::_shortName = "OSPRay";
 const string OSPRayParams::_numThreadsTag = "NumThreads";
 const string OSPRayParams::_aoSamplesTag = "aoSamples";
 const string OSPRayParams::_samplesPerPixelTag = "SamplesPerPixel";
+const string OSPRayParams::_ambientIntensity = "AmbientIntensity";
+const string OSPRayParams::_spotlightIntensity = "SpotlightIntensity";
 
 //
 // Register class with object factory!!!
@@ -77,4 +79,9 @@ int  OSPRayParams::GetAOSamples() const { return GetValueLong(_aoSamplesTag, 0);
 void OSPRayParams::SetAOSamples(int n) { SetValueLong(_aoSamplesTag, "Number of ambient occlusion samples", n); }
 
 // Reset settings settings to initial state
-void OSPRayParams::_init() { SetValueLong(_samplesPerPixelTag, "Samples Per Pixel", 1); }
+void OSPRayParams::_init()
+{
+    SetValueLong(_samplesPerPixelTag, "Samples Per Pixel", 1);
+    SetValueDouble(_ambientIntensity, "Ambient Intensity", 0.6);
+    SetValueDouble(_spotlightIntensity, "Spotlight Intensity", 1);
+}

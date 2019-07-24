@@ -45,6 +45,19 @@ private slots:
     void valueChangedSlot();
 };
 
+class ParamsWidgetFloat : public ParamsWidget {
+    Q_OBJECT
+
+    QLineEdit *_lineEdit = nullptr;
+
+public:
+    ParamsWidgetFloat(const std::string &tag, const std::string &label = "");
+    void Update(VAPoR::ParamsBase *p);
+
+private slots:
+    void valueChangedSlot();
+};
+
 class ParamsWidgetGroup : public QGroupBox {
     Q_OBJECT
 
