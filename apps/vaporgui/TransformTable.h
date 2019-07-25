@@ -29,7 +29,7 @@ class TransformTable : public QWidget, public Ui_TransformTableGUI {
 public:
     TransformTable(QWidget *parent);
 
-    virtual ~TransformTable(){};
+    virtual ~TransformTable();
 
     virtual void Update(const std::map<string, VAPoR::Transform *> &transforms);
     virtual void Update(VAPoR::Transform *transform)
@@ -50,6 +50,7 @@ private:
     VaporTable *_translationTable;
     VaporTable *_rotationTable;
     VaporTable *_originTable;
+    QWidget *   _rotationWidgetToDelete;
 
     std::vector<std::string> _horizontalHeaders;
     std::vector<std::string> _verticalHeaders;
