@@ -4,7 +4,7 @@
 #include <vapor/Texture.h>
 #include <vapor/Framebuffer.h>
 #include <vapor/VolumeAlgorithm.h>
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
 #include <ospray/ospray.h>
 
 namespace VAPoR {
@@ -91,6 +91,7 @@ protected:
     OSPGeometry         sphere = nullptr;
     OSPVolume           _volume = nullptr;
     OSPTransferFunction _tf = nullptr;
+    glm::mat4           _ospCoordTransform;
 
     int       OSPRayLoadData(OSPModel world);
     int       OSPRayLoadDataRegular(OSPModel world, Grid *grid);
