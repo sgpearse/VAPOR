@@ -280,7 +280,7 @@ void VSlider::_respondQLineEdit()
 // ====================================
 //
 
-VGeometry::VGeometry(QWidget *parent, int dim, const std::vector<float> &range)
+VGeometry::VGeometry(QWidget *parent, int dim, const std::vector<float> &range) : QWidget(parent)
 {
     VAssert(dim == 2 || dim == 3);
     VAssert(range.size() == dim * 2);
