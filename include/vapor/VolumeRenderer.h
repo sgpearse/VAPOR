@@ -92,14 +92,15 @@ protected:
     OSPVolume           _volume = nullptr;
     OSPTransferFunction _tf = nullptr;
 
-    bool      OSPRayNeedToLoadData();
-    int       OSPRayLoadData(OSPModel world);
-    int       OSPRayLoadDataRegular(OSPModel world, Grid *grid);
-    int       OSPRayLoadDataStructured(OSPModel world, Grid *grid);
-    int       OSPRayLoadDataUnstructured(OSPModel world, Grid *grid);
-    int       OSPRayLoadTF();
-    glm::vec3 _getTotalScaling() const;
-    glm::vec3 _getOrigin() const;
+    bool         OSPRayNeedToLoadData();
+    int          OSPRayLoadData(OSPModel world);
+    int          OSPRayLoadDataRegular(OSPModel world, Grid *grid);
+    int          OSPRayLoadDataStructured(OSPModel world, Grid *grid);
+    int          OSPRayLoadDataUnstructured(OSPModel world, Grid *grid);
+    int          OSPRayLoadTF();
+    virtual void OSPRayAddObjectToWorld(OSPModel world);
+    glm::vec3    _getTotalScaling() const;
+    glm::vec3    _getOrigin() const;
 
     struct OSPCache {
         glm::mat4 coordTransform;
