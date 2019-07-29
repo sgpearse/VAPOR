@@ -82,6 +82,8 @@ private:
 
 public:
     static const std::string OSPRaySamplingRateTag;
+    static const std::string OSPRayLightingEnabledTag;
+    static const std::string OSPRaySpecularTag;
 };
 
 };    // namespace VAPoR

@@ -24,10 +24,10 @@ OSPRayEnableCheckbox::OSPRayEnableCheckbox(QWidget *parent) : QWidget(parent)
 void OSPRayEnableCheckbox::Update(VAPoR::RenderParams *rp)
 {
     _renderParams = rp;
-    _checkBox->setChecked(rp->GetValueLong("ospray", false));
+    _checkBox->setChecked(rp->GetValueLong(RenderParams::OSPRayEnabledTag, false));
 }
 
 void OSPRayEnableCheckbox::checkbox_clicked(bool checked)
 {
-    if (_renderParams) _renderParams->SetValueLong("ospray", "ospray", checked);
+    if (_renderParams) _renderParams->SetValueLong(RenderParams::OSPRayEnabledTag, RenderParams::OSPRayEnabledTag, checked);
 }
