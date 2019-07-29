@@ -108,8 +108,11 @@ void ParamsWidgetGroup::changeEvent(QEvent *event)
 
 ParamsWidgetTabGroup::ParamsWidgetTabGroup(const std::string &title)
 {
-    this->addTab(new QWidget(this), QString::fromStdString(title));
-    _tab()->setLayout(new QVBoxLayout);
+    addTab(new QWidget(this), QString::fromStdString(title));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->setSpacing(0);
+    _tab()->setLayout(layout);
 }
 
 QWidget *ParamsWidgetTabGroup::_tab() const { return this->widget(0); }
