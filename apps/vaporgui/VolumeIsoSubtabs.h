@@ -6,6 +6,7 @@
 #include "ui_VolumeIsoAnnotationGUI.h"
 
 #include "vapor/VolumeIsoParams.h"
+#include "ParamsWidgets.h"
 
 namespace VAPoR {
 class ControlExec;
@@ -63,6 +64,7 @@ private slots:
 
 private:
     VAPoR::VolumeIsoParams *_params;
+    ParamsWidgetTabGroup *  _osprayGroup;
 };
 
 class VolumeIsoGeometrySubtab : public QWidget, public Ui_VolumeIsoGeometryGUI {
