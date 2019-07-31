@@ -208,7 +208,7 @@ public:
     /* Constructor for 2D or 3D geometries.
        Four floating point values imply a 2D geometry, while Six floating point
        values imply a 3D geometry. All other numbers are illegal. */
-    VGeometry(QWidget *parent, int dim, const std::vector<float> &range);
+    VGeometry(QWidget *parent, int dim, const std::vector<float> &range, const std::string &label = "Geometry");
 
     ~VGeometry();
 
@@ -228,10 +228,10 @@ private slots:
     void _respondChanges();
 
 private:
-    int          _dim;
-    VRange *     _xrange, *_yrange, *_zrange;
-    QVBoxLayout *_layout;
-    QWidget *    _pageWidget;
+    int     _dim;
+    VRange *_xrange, *_yrange, *_zrange;
+    // QVBoxLayout* _layout;
+    // QWidget*     _pageWidget;
 };
 
 //
