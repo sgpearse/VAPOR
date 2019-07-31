@@ -110,7 +110,7 @@ private:
 
     GUIStateParams *_getStateParams() const
     {
-        assert(_controlExec != NULL);
+        VAssert(_controlExec != NULL);
         return ((GUIStateParams *)_controlExec->GetParamsMgr()->GetParams(GUIStateParams::GetClassType()));
     }
 
@@ -120,6 +120,8 @@ private:
 
     // Convert name to a unique name (among renderer names)
     std::string uniqueName(std::string name);
+
+    void _showIntelDriverWarning(const string &rendererType);
 
 private slots:
     void _showNewRendererDialog();

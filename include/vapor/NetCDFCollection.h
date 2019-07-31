@@ -706,6 +706,7 @@ public:
         void                GetVariableInfo(NetCDFSimple::Variable &variable) const { variable = _variable; }
         bool                GetTimeVarying() const { return (_time_varying); };
         bool                GetMissingValue(string attname, double &mv) const;
+        void                Sort();
 
         friend std::ostream &operator<<(std::ostream &o, const TimeVaryingVar &var);
 
@@ -724,8 +725,7 @@ public:
         string                 _time_name;       // name of time dimension
         string                 _name;            // variable name
         bool                   _time_varying;    // true if variable's slowest varying dimension
-                               // is a time dimension.
-        friend bool tvmap_cmp(NetCDFCollection::TimeVaryingVar::tvmap_t a, NetCDFCollection::TimeVaryingVar::tvmap_t b);
+                                                 // is a time dimension.
     };
 
     class DerivedVar {

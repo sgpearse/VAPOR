@@ -23,7 +23,7 @@
 #ifndef ParamsBase_H
 #define ParamsBase_H
 
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <functional>
 #include <vapor/MyBase.h>
 #include <vapor/XmlNode.h>
@@ -162,7 +162,7 @@ public:
     //!
     string GetName() const
     {
-        assert(_node);
+        VAssert(_node);
         return (_node->Tag());
     }
 

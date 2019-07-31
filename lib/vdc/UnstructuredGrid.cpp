@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <cmath>
 #include <time.h>
 #ifdef Darwin
@@ -24,13 +24,13 @@ UnstructuredGrid::UnstructuredGrid(const std::vector<size_t> &vertexDims, const 
                                    size_t maxVertexPerFace, size_t maxFacePerVertex)
 : Grid(location == NODE ? vertexDims : (location == CELL ? faceDims : edgeDims), bs, blks, topology_dimension)
 {
-    assert(vertexDims.size() == 1 || vertexDims.size() == 2);
-    assert(vertexDims.size() == faceDims.size());
-    assert(vertexDims.size() == edgeDims.size() || edgeDims.size() == 0);
+    VAssert(vertexDims.size() == 1 || vertexDims.size() == 2);
+    VAssert(vertexDims.size() == faceDims.size());
+    VAssert(vertexDims.size() == edgeDims.size() || edgeDims.size() == 0);
 
     // Edge data not supported yet
     //
-    assert(location == NODE || location == CELL);
+    VAssert(location == NODE || location == CELL);
 
     _vertexDims = vertexDims;
     _faceDims = faceDims;
@@ -50,50 +50,46 @@ UnstructuredGrid::UnstructuredGrid(const std::vector<size_t> &vertexDims, const 
     _boundaryID = -2;
 }
 
-bool UnstructuredGrid::GetCellNodes(const std::vector<size_t> &cindices, std::vector<vector<size_t>> &nodes) const
+bool UnstructuredGrid::GetCellNodes(const size_t cindices[], size_t nodes[], int &n) const
 {
-    nodes.clear();
+    size_t cCindices[3];
+    ClampCellIndex(cindices, cCindices);
 
-    vector<size_t> cCindices = cindices;
-    ClampCellIndex(cCindices);
-
-    vector<size_t> cdims = GetCellDimensions();
+    const vector<size_t> &cdims = GetCellDimensions();
 
     // _vertexOnFace is dimensioned cdims[0] x _maxVertexPerFace
     //
     const int *ptr = _vertexOnFace + (_maxVertexPerFace * cCindices[0]);
     long       offset = GetNodeOffset();
 
+    n = 0;
     if (cdims.size() == 1) {
         for (int i = 0; i < _maxVertexPerFace; i++, ptr++) {
-            vector<size_t> indices;
             if (*ptr == GetMissingID() || *ptr + offset < 0) break;
             if (*ptr == GetBoundaryID()) continue;
 
-            indices.push_back(*ptr + offset);
-            nodes.push_back(indices);
+            nodes[n] = *ptr + offset;
+            n++;
         }
     } else {    // layered case
 
         for (int i = 0; i < _maxVertexPerFace; i++, ptr++) {
-            vector<size_t> indices;
             if (*ptr == GetMissingID() || *ptr + offset < 0) break;
             if (*ptr == GetBoundaryID()) continue;
 
-            indices.push_back(*ptr + offset);
-            indices.push_back(cCindices[1]);
-            nodes.push_back(indices);
+            nodes[2 * n + 0] = *ptr + offset;
+            nodes[2 * n + 1] = cCindices[1];
+            n++;
         }
 
         ptr = _vertexOnFace + (_maxVertexPerFace * cCindices[0]);
         for (int i = 0; i < _maxVertexPerFace; i++) {
-            vector<size_t> indices;
             if (*ptr == GetMissingID() || *ptr + offset < 0) break;
             if (*ptr == GetBoundaryID()) continue;
 
-            indices.push_back(*ptr + offset);
-            indices.push_back(cCindices[1] + 1);
-            nodes.push_back(indices);
+            nodes[2 * n + 0] = *ptr + offset;
+            nodes[2 * n + 1] = cCindices[1];
+            n++;
         }
     }
     return (true);
@@ -167,9 +163,9 @@ bool UnstructuredGrid::GetNodeCells(const std::vector<size_t> &indices, std::vec
     cells.clear();
 
     vector<size_t> dims = GetDimensions();
-    assert(indices.size() == dims.size());
+    VAssert(indices.size() == dims.size());
 
-    assert(0 && "GetNodeCells() Not supported");
+    VAssert(0 && "GetNodeCells() Not supported");
     return false;
 }
 

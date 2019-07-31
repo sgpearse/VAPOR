@@ -29,7 +29,7 @@
 #include <vapor/glutil.h>    // Must be included first!!!
 #include <iostream>
 #include <fstream>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <sstream>
 #include <iostream>
 #include <functional>
@@ -155,7 +155,6 @@ void MainForm::_initMembers()
     _navigationAction = NULL;
     _editUndoAction = NULL;
     _editRedoAction = NULL;
-    _editUndoRedoClearAction = NULL;
     _timeStepEdit = NULL;
     _timeStepEditValidator = NULL;
 
@@ -246,6 +245,7 @@ void MainForm::_initMembers()
     _buttonPressed = false;
 }
 
+#include <vapor/VDCNetCDF.h>
 // Only the main program should call the constructor:
 //
 MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : QMainWindow(parent)
@@ -371,7 +371,15 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
     }
 
     if (files.size() && files[0].endsWith(".nc")) {
-        loadData(files[0].toStdString());
+        VDCNetCDF vdc;
+        bool      errReportingEnabled = Wasp::MyBase::EnableErrMsg(false);
+        int       ret = vdc.Initialize(files[0].toStdString(), {}, VDC::R);
+        Wasp::MyBase::EnableErrMsg(errReportingEnabled);
+        if (ret < 0) {
+            loadDataHelper({files[0].toStdString()}, "NetCDF CF files", "", "cf", true);
+        } else {
+            loadData(files[0].toStdString());
+        }
         _stateChangeCB();
     }
     app->installEventFilter(this);
@@ -592,6 +600,7 @@ void MainForm::hookupSignals()
     connect(_vizWinMgr, SIGNAL(activateViz(const QString &)), _tabMgr, SLOT(SetActiveViz(const QString &)));
 
     connect(_tabMgr, SIGNAL(Proj4StringChanged(string)), this, SLOT(_setProj4String(string)));
+    connect(_vizWinMgr, SIGNAL(removeViz(const QString &)), _tabMgr, SLOT(SetActiveViz(const QString &)));
 }
 
 void MainForm::_createFileMenu()
@@ -699,21 +708,13 @@ void MainForm::_createEditMenu()
     _editRedoAction->setToolTip("Redo the last undone session state change");
     _editRedoAction->setEnabled(false);
 
-    _editUndoRedoClearAction = new QAction(this);
-    _editUndoRedoClearAction->setEnabled(true);
-    _editUndoRedoClearAction->setText(tr("&Clear undo/redo"));
-    _editUndoRedoClearAction->setToolTip("Clear the undo/redo queue");
-    _editUndoRedoClearAction->setEnabled(true);
-
     _Edit = menuBar()->addMenu(tr("Edit"));
     _Edit->addAction(_editUndoAction);
     _Edit->addAction(_editRedoAction);
-    _Edit->addAction(_editUndoRedoClearAction);
     _Edit->addSeparator();
 
     connect(_editUndoAction, SIGNAL(triggered()), this, SLOT(undo()));
     connect(_editRedoAction, SIGNAL(triggered()), this, SLOT(redo()));
-    connect(_editUndoRedoClearAction, SIGNAL(triggered()), this, SLOT(clear()));
 }
 
 void MainForm::_createToolsMenu()
@@ -908,10 +909,10 @@ void MainForm::sessionOpenHelper(string fileName)
     _tabMgr->Restart();
 }
 
-// Open session file
-//
 void MainForm::sessionOpen(QString qfileName)
 {
+    // Disable "Are you sure?" popup in debug build
+#ifdef NDEBUG
     if (_stateChangeFlag) {
         QMessageBox msgBox;
         msgBox.setWindowTitle("Are you sure?");
@@ -920,6 +921,7 @@ void MainForm::sessionOpen(QString qfileName)
         msgBox.setDefaultButton(QMessageBox::No);
         if (msgBox.exec() == QMessageBox::No) { return; }
     }
+#endif
 
     // This launches a panel that enables the
     // user to choose input session save files, then to
@@ -1073,8 +1075,6 @@ void MainForm::redo()
     if (!_controlExec->RedoSize()) return;
     undoRedoHelper(false);
 }
-
-void MainForm::clear() { _controlExec->UndoRedoClear(); }
 
 void MainForm::helpAbout()
 {
@@ -1253,6 +1253,26 @@ void MainForm::importMPASData()
     loadDataHelper(files, "MPAS files", "", "mpas", true);
 }
 
+bool MainForm::doesQStringContainNonASCIICharacter(const QString &s)
+{
+    for (int i = 0; i < s.length(); i++)
+        if (s.at(i).unicode() > 127) return true;
+    return false;
+}
+
+int MainForm::checkQStringContainsNonASCIICharacter(const QString &s)
+{
+    if (doesQStringContainNonASCIICharacter(s)) {
+#ifdef WIN32
+        MyBase::SetErrMsg("Windows will convert a colon (common in WRF timestamps) to a non-ASCII dot character. This needs to be renamed.\n");
+#endif
+        MyBase::SetErrMsg("Vapor does not support paths with non-ASCII characters.\n");
+        MSG_ERR("Non ASCII Character in path");
+        return -1;
+    }
+    return 0;
+}
+
 vector<string> MainForm::myGetOpenFileNames(string prompt, string dir, string filter, bool multi)
 {
     QString qPrompt(prompt.c_str());
@@ -1265,12 +1285,18 @@ vector<string> MainForm::myGetOpenFileNames(string prompt, string dir, string fi
         QStringList           list = fileNames;
         QStringList::Iterator it = list.begin();
         while (it != list.end()) {
-            if (!it->isNull()) files.push_back((*it).toStdString());
+            if (!it->isNull()) {
+                if (checkQStringContainsNonASCIICharacter(*it) < 0) return vector<string>();
+                files.push_back((*it).toStdString());
+            }
             ++it;
         }
     } else {
         QString fileName = QFileDialog::getOpenFileName(this, qPrompt, qDir, qFilter);
-        if (!fileName.isNull()) files.push_back(fileName.toStdString());
+        if (!fileName.isNull()) {
+            if (checkQStringContainsNonASCIICharacter(fileName) < 0) return vector<string>();
+            files.push_back(fileName.toStdString());
+        }
     }
 
     for (int i = 0; i < files.size(); i++) {
@@ -1286,6 +1312,8 @@ vector<string> MainForm::myGetOpenFileNames(string prompt, string dir, string fi
 
 void MainForm::sessionNew()
 {
+    // Disable "Are you sure?" popup in debug build
+#ifdef NDEBUG
     if (_stateChangeFlag) {
         QMessageBox msgBox;
         msgBox.setWindowTitle("Are you sure?");
@@ -1294,6 +1322,7 @@ void MainForm::sessionNew()
         msgBox.setDefaultButton(QMessageBox::No);
         if (msgBox.exec() == QMessageBox::No) { return; }
     }
+#endif
 
     sessionOpenHelper("");
 
@@ -1370,6 +1399,7 @@ void MainForm::modeChange(int newmode)
 
 void MainForm::showCitationReminder()
 {
+    // Disable citation reminder in Debug build
 #ifndef NDEBUG
     return;
 #endif
@@ -1731,7 +1761,7 @@ bool MainForm::event(QEvent *e) { return QWidget::event(e); }
 
 bool MainForm::eventFilter(QObject *obj, QEvent *event)
 {
-    assert(_controlExec && _vizWinMgr);
+    VAssert(_controlExec && _vizWinMgr);
 
     // Only update the GUI if the Params state has changed
     //
@@ -1818,12 +1848,15 @@ void MainForm::_performSessionAutoSave()
 
 void MainForm::update()
 {
-    assert(_controlExec);
+    VAssert(_controlExec);
 
     AnimationParams *aParams = GetAnimationParams();
     size_t           timestep = aParams->GetCurrentTimestep();
 
     _timeStepEdit->setText(QString::number((int)timestep));
+    _modeCombo->blockSignals(true);
+    _modeCombo->setCurrentIndex(_modeCombo->findText(QString::fromStdString(GetStateParams()->GetMouseModeParams()->GetCurrentMouseMode())));
+    _modeCombo->blockSignals(false);
 
     updateMenus();
 
@@ -1898,11 +1931,9 @@ void MainForm::captureSingleTiff()
 void MainForm::captureSingleImage(string filter, string defaultSuffix)
 {
     showCitationReminder();
-    SettingsParams *sP = GetSettingsParams();
-    string          imageDir = sP->GetImageDir();
-    if (imageDir == "") imageDir = sP->GetDefaultImageDir();
+    auto imageDir = QDir::homePath();
 
-    QFileDialog fileDialog(this, "Specify single image capture file name", imageDir.c_str(), QString::fromStdString(filter));
+    QFileDialog fileDialog(this, "Specify single image capture file name", imageDir, QString::fromStdString(filter));
 
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     fileDialog.move(pos());
@@ -1924,9 +1955,6 @@ void MainForm::captureSingleImage(string filter, string defaultSuffix)
 
     string file = fileInfo.absoluteFilePath().toStdString();
     string filepath = fileInfo.path().toStdString();
-
-    // Save the path for future captures
-    sP->SetImageDir(filepath);
 
     // Turn on "image capture mode" in the current active visualizer
     GUIStateParams *p = GetStateParams();
@@ -2032,8 +2060,8 @@ void MainForm::launchStats()
 void MainForm::launchPlotUtility()
 {
     if (!_plot) {
-        assert(_controlExec->GetDataStatus());
-        assert(_controlExec->GetParamsMgr());
+        VAssert(_controlExec->GetDataStatus());
+        VAssert(_controlExec->GetParamsMgr());
         _plot = new Plot(_controlExec->GetDataStatus(), _controlExec->GetParamsMgr(), this);
     } else {
         _plot->show();
@@ -2084,11 +2112,9 @@ void MainForm::captureTiffSequence()
 void MainForm::startAnimCapture(string filter, string defaultSuffix)
 {
     showCitationReminder();
-    SettingsParams *sP = GetSettingsParams();
-    string          imageDir = sP->GetImageDir();
-    if (imageDir == "") imageDir = sP->GetDefaultImageDir();
+    auto imageDir = QDir::homePath();
 
-    QFileDialog fileDialog(this, "Specify image sequence file name", imageDir.c_str(), QString::fromStdString(filter));
+    QFileDialog fileDialog(this, "Specify image sequence file name", imageDir, QString::fromStdString(filter));
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     if (fileDialog.exec() != QDialog::Accepted) return;
 
@@ -2107,8 +2133,6 @@ void MainForm::startAnimCapture(string filter, string defaultSuffix)
         fileName = fileInfo.absolutePath() + "/" + fileInfo.baseName();
     }
 
-    // Save the path for future captures
-    sP->SetImageDir(fileInfo.absolutePath().toStdString());
     QString fileBaseName = fileInfo.baseName();
 
     int posn;

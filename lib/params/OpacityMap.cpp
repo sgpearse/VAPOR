@@ -129,8 +129,9 @@ void OpacityMap::addControlPoint(float value, float opacity)
 void OpacityMap::deleteControlPoint(int index)
 {
     vector<double> cps = GetControlPoints();
+
     if (index >= 0 && index < cps.size() / 2 - 1 && cps.size() > 2) {
-        cps.erase(cps.begin() + 2 * index, cps.begin() + 2 * index + 1);
+        cps.erase(cps.begin() + 2 * index, cps.begin() + 2 * index + 2);
         SetControlPoints(cps);
     }
 }
@@ -318,7 +319,7 @@ bool OpacityMap::inDataBounds(float value) const { return (value >= minValue() &
 
 void OpacityMap::SetDataBounds(const vector<double> &bounds)
 {
-    assert(bounds.size() == 2);
+    VAssert(bounds.size() == 2);
 
     SetValueDoubleVec(_dataBoundsTag, "Set min max map value", bounds);
 }

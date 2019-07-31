@@ -28,11 +28,19 @@ string FileUtils::ReadFileToString(const string &path)
         fseek(f, 0, SEEK_END);
         long length = ftell(f);
         rewind(f);
-        char *buf = new char[length + 1];
-        fread(buf, length, 1, f);
+
+        char * buf = new char[length + 1];
+        size_t rv = fread(buf, length, 1, f);
+        fclose(f);
+        if (rv != 1) {
+            delete[] buf;
+            return string("");
+        }
+
         buf[length] = 0;
         string ret(buf);
         delete[] buf;
+
         return ret;
     } else {
         return "";
@@ -152,6 +160,8 @@ std::string FileUtils::JoinPaths(std::initializer_list<std::string> paths)
 
 int FileUtils::MakeDir(const std::string &path)
 {
+    if (IsDirectory(path)) return 0;
+
     if (!Exists(Dirname(path))) MakeDir(Dirname(path));
 #if WIN32
     return _mkdir(path.c_str());

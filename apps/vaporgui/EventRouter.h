@@ -20,7 +20,7 @@
 
 #ifndef EVENTROUTER_H
 #define EVENTROUTER_H
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <QObject>
 #include <QLineEdit>
 #include <QSlider>
@@ -216,13 +216,13 @@ public:
 
     GUIStateParams *GetStateParams() const
     {
-        assert(_controlExec != NULL);
+        VAssert(_controlExec != NULL);
         return ((GUIStateParams *)_controlExec->GetParamsMgr()->GetParams(GUIStateParams::GetClassType()));
     }
 
     AnimationParams *GetAnimationParams() const
     {
-        assert(_controlExec != NULL);
+        VAssert(_controlExec != NULL);
         return ((AnimationParams *)_controlExec->GetParamsMgr()->GetParams(AnimationParams::GetClassType()));
     }
 
@@ -230,7 +230,7 @@ public:
     {
         AnimationParams *aParams;
         aParams = (AnimationParams *)_controlExec->GetParamsMgr()->GetParams(AnimationParams::GetClassType());
-        assert(aParams);
+        VAssert(aParams);
 
         return (aParams->GetCurrentTimestep());
     }

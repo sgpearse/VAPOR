@@ -16,7 +16,7 @@
 //
 //	Description:	Implements the RenderHolder class
 
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <qcombobox.h>
 #include <QStringList>
 #include <QTableWidget>
@@ -31,6 +31,9 @@
 #include "VizSelectCombo.h"
 #include "ErrorReporter.h"
 #include "RenderHolder.h"
+#include <SettingsParams.h>
+#include <vapor/VolumeRenderer.h>
+#include <vapor/VolumeIsoRenderer.h>
 
 using namespace VAPoR;
 
@@ -148,9 +151,9 @@ RenderHolder::RenderHolder(QWidget *parent, ControlExec *ce, const vector<QWidge
                            const vector<string> &smallIconPaths)
 : QWidget(parent), Ui_LeftPanel()
 {
-    assert(widgets.size() == widgetNames.size());
-    assert(widgets.size() == iconPaths.size());
-    assert(widgets.size() == smallIconPaths.size());
+    VAssert(widgets.size() == widgetNames.size());
+    VAssert(widgets.size() == iconPaths.size());
+    VAssert(widgets.size() == smallIconPaths.size());
 
     setupUi(this);
 
@@ -195,6 +198,38 @@ void RenderHolder::_initializeNewRendererDialog(vector<string> datasetNames)
     for (int i = 0; i < datasetNames.size(); i++) { _newRendererDialog->dataMgrCombo->addItem(QString::fromStdString(datasetNames[i])); }
 }
 
+void RenderHolder::_showIntelDriverWarning(const string &rendererType)
+{
+    if (_controlExec->GetGPUVendor() != GLManager::Vendor::Intel) return;
+    if (rendererType != VolumeRenderer::GetClassType() && rendererType != VolumeIsoRenderer::GetClassType()) return;
+
+    ParamsMgr *     paramsMgr = _controlExec->GetParamsMgr();
+    SettingsParams *sp = (SettingsParams *)paramsMgr->GetParams(SettingsParams::GetClassType());
+    if (sp->GetDontShowIntelDriverWarning()) return;
+
+    // Qt will automatically delete this for us apparently
+    QCheckBox *dontShowAgain = new QCheckBox("Don't show again");
+    dontShowAgain->blockSignals(true);
+
+    QMessageBox warning;
+    warning.setIcon(QMessageBox::Warning);
+    warning.setText("Warning");
+    warning.setInformativeText("Regular grid renderer is used by default. "
+                               "If your data is non-regular, it can result in an image that misrepresents your data. "
+                               "\n\n"
+                               "To get correct results for non-regular data, select the curvilinear grid rendering algorithm. "
+                               "This can be changed under the renderer's Apperance tab under the transfer function editor. "
+                               "\n\n"
+                               "Your computer uses an Intel GPU which has poor support for the curvilinear renderer. "
+                               "It could potentially result in Vapor hanging or crashing. "
+                               "In this case, we recommend you use a computer with an AMD or Nvidia GPU. ");
+    warning.addButton(dontShowAgain, QMessageBox::ActionRole);
+    warning.addButton(QMessageBox::Ok);
+    warning.exec();
+
+    if (dontShowAgain->checkState() == Qt::Checked) sp->SetDontShowIntelDriverWarning(true);
+}
+
 void RenderHolder::_showNewRendererDialog()
 {
     ParamsMgr *    paramsMgr = _controlExec->GetParamsMgr();
@@ -204,6 +239,7 @@ void RenderHolder::_showNewRendererDialog()
     if (_newRendererDialog->exec() != QDialog::Accepted) { return; }
 
     string rendererType = _newRendererDialog->GetSelectedRenderer();
+    _showIntelDriverWarning(rendererType);
 
     int    selection = _newRendererDialog->dataMgrCombo->currentIndex();
     string dataSetName = dataSetNames[selection];
@@ -261,9 +297,9 @@ void RenderHolder::_deleteRenderer()
     paramsMgr->BeginSaveStateGroup("Delete renderer");
 
     int rc = _controlExec->ActivateRender(activeViz, dataSetName, rendererType, rendererName, false);
-    assert(rc == 0);
+    VAssert(rc == 0);
 
-    _controlExec->RemoveRenderer(activeViz, dataSetName, rendererType, rendererName);
+    _controlExec->RemoveRenderer(activeViz, dataSetName, rendererType, rendererName, false);
 
     // Update will rebuild the TableWidget with the updated state
     //
@@ -375,10 +411,10 @@ void RenderHolder::_copyInstanceTo(int item)
 
     string dataSetName, dummy1, dummy2;
     bool   status = _controlExec->RenderLookup(activeRenderInst, dummy1, dataSetName, dummy2);
-    assert(status);
+    VAssert(status);
 
     RenderParams *rParams = _controlExec->GetRenderParams(activeViz, dataSetName, activeRenderClass, activeRenderInst);
-    assert(rParams);
+    VAssert(rParams);
 
     string rendererName = uniqueName(activeRenderInst);
 
@@ -538,10 +574,10 @@ void RenderHolder::Update()
 
             string dataSetName, dummy1, dummy2;
             bool   status = _controlExec->RenderLookup(rendererName, dummy1, dataSetName, dummy2);
-            assert(status);
+            VAssert(status);
 
             RenderParams *rParams = _controlExec->GetRenderParams(activeViz, dataSetName, className, rendererName);
-            assert(rParams);
+            VAssert(rParams);
 
             string enabled = rParams->IsEnabled() ? "1" : "0";
             tableValues.push_back(rendererName);

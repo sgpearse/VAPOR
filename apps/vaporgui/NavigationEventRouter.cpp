@@ -60,6 +60,8 @@ NavigationEventRouter::NavigationEventRouter(QWidget *parent, ControlExec *ce) :
 {
     setupUi(this);
 
+    futureFeaturesTab->hide();
+
     // Not implemented
     //
     camPosLat->setEnabled(false);
@@ -69,6 +71,7 @@ NavigationEventRouter::NavigationEventRouter(QWidget *parent, ControlExec *ce) :
     stereoCombo->setEnabled(false);
     latLonCheckbox->setEnabled(false);
     stereoSeparationEdit->setEnabled(false);
+    adjustSize();
 }
 
 NavigationEventRouter::~NavigationEventRouter() {}
@@ -148,6 +151,19 @@ void NavigationEventRouter::_performAutoStretching(string dataSetName)
     vector<double> minExt, maxExt;
 
     for (int i = 0; i < winNames.size(); i++) {
+        ViewpointParams *   vpParams = paramsMgr->GetViewpointParams(winNames[i]);
+        Transform *         transform = vpParams->GetTransform(dataSetName);
+        std::vector<double> scales = transform->GetScales();
+        int                 xDimension = 0;
+        int                 yDimension = 1;
+        int                 zDimension = 2;
+
+        // If a dimension's scale is not 1.f, the user has saved a session with
+        // a non-default value.  Don't modify it.
+        if (scales[xDimension] != 1.f) continue;
+        if (scales[yDimension] != 1.f) continue;
+        if (scales[zDimension] != 1.f) continue;
+
         DataMgr *           dm = ds->GetDataMgr(dataSetName);
         std::vector<string> varNames = dm->GetDataVarNames(3);
 
@@ -169,8 +185,6 @@ void NavigationEventRouter::_performAutoStretching(string dataSetName)
             if (range[i] < (maxRange / 10.0)) { scale[i] = maxRange / (10.0 * range[i]); }
         }
 
-        ViewpointParams *vpParams = paramsMgr->GetViewpointParams(winNames[i]);
-        Transform *      transform = vpParams->GetTransform(dataSetName);
         transform->SetScales(scale);
     }
 }
@@ -630,7 +644,7 @@ void NavigationEventRouter::AlignView(int axis)
             upvec[0] = 1.f;
             break;
         case (7): dirvec[2] = -1.f; break;
-        default: assert(0);
+        default: VAssert(0);
         }
     }
 
@@ -730,8 +744,8 @@ void NavigationEventRouter::ViewAll()
 
     vector<double> minExts, maxExts;
     dataStatus->GetActiveExtents(paramsMgr, ts, minExts, maxExts);
-    assert(minExts.size() == 3);
-    assert(maxExts.size() == 3);
+    VAssert(minExts.size() == 3);
+    VAssert(maxExts.size() == 3);
 
     double maxSide = max(maxExts[2] - minExts[2], max(maxExts[1] - minExts[1], maxExts[0] - minExts[0]));
 
@@ -768,8 +782,8 @@ VAPoR::ViewpointParams *NavigationEventRouter::_getActiveParams() const
 
 void NavigationEventRouter::_setViewpointParams(const vector<double> &modelview, const vector<double> &center) const
 {
-    assert(modelview.size() == 16);
-    assert(center.size() == 3);
+    VAssert(modelview.size() == 16);
+    VAssert(center.size() == 3);
 
     // Set modelview and rotation center for *all* visualizers
     //

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <map>
 #include <iostream>
+#include "vapor/VAssert.h"
 #include <cassert>
 #include <stdio.h>
 
@@ -379,7 +380,7 @@ int DCWRF::closeVariable(int fd)
 
 template<class T> int DCWRF::_readRegionTemplate(int fd, const vector<size_t> &min, const vector<size_t> &max, T *region)
 {
-    assert(min.size() == max.size());
+    VAssert(min.size() == max.size());
 
     WRFFileObject *w = (WRFFileObject *)_fileTable.GetEntry(fd);
 
@@ -795,7 +796,7 @@ DerivedCoordVar_Staggered *DCWRF::_makeDerivedHorizontal(NetCDFCollection *ncdfc
 
 int DCWRF::_InitHorizontalCoordinatesHelper(NetCDFCollection *ncdfc, string name, int axis)
 {
-    assert(axis == 0 || axis == 1);
+    VAssert(axis == 0 || axis == 1);
 
     DerivedCoordVar_Staggered *derivedVar = NULL;
 
@@ -913,8 +914,8 @@ int DCWRF::_InitVerticalCoordinates(NetCDFCollection *ncdfc)
 {
     // Create 1D vertical coordinate variable for each "vertical" dimension
     //
-    // N.B. This only deals with the vertical dimensions we know about.
-    // Could be others.
+    // First do ones we know about. These require special treatment because
+    // they may be transformed to other units
     //
     string name = "bottom_top";
     if (_dimsMap.find(name) != _dimsMap.end()) { _derivedVars.push_back(_InitVerticalCoordinatesHelper(name, name)); }
@@ -922,8 +923,24 @@ int DCWRF::_InitVerticalCoordinates(NetCDFCollection *ncdfc)
     name = "bottom_top_stag";
     if (_dimsMap.find(name) != _dimsMap.end()) { _derivedVars.push_back(_InitVerticalCoordinatesHelper(name, name)); }
 
-    name = "soil_layers_stag";
-    if (_dimsMap.find(name) != _dimsMap.end()) { _derivedVars.push_back(_InitVerticalCoordinatesHelper(name, name)); }
+    // Now handle dimensions that are  not documented . I.e. everything
+    // else in the 3rd dimension position
+    //
+    vector<string> vars = ncdfc->GetVariableNames(3, true);
+
+    for (int i = 0; i < vars.size(); i++) {
+        vector<string> dimnames = ncdfc->GetSpatialDimNames(vars[i]);
+        assert(dimnames.size() == 3);
+        reverse(dimnames.begin(), dimnames.end());
+        name = dimnames[2];
+        if (_dimsMap.find(name) == _dimsMap.end()) continue;
+
+        // no duplicates
+        //
+        if (_coordVarsMap.find(name) != _coordVarsMap.end()) continue;
+
+        _derivedVars.push_back(_InitVerticalCoordinatesHelper(name, name));
+    }
 
     return (0);
 }
@@ -969,7 +986,7 @@ int DCWRF::_InitDimensions(NetCDFCollection *ncdfc)
     //
     vector<string> dimnames = ncdfc->GetDimNames();
     vector<size_t> dimlens = ncdfc->GetDims();
-    assert(dimnames.size() == dimlens.size());
+    VAssert(dimnames.size() == dimlens.size());
 
     // WRF files use reserved names for dimensions. The time dimension
     // is always named "Time", etc.

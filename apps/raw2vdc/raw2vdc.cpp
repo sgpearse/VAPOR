@@ -130,13 +130,13 @@ int main(int argc, char **argv)
     if (op.ParseOptions(&argc, argv, get_options) < 0) { exit(1); }
 
     if (opt.help) {
-        cerr << "Usage: " << ProgName << " [options] netcdffile datafile" << endl;
+        cerr << "Usage: " << ProgName << " [options] vdcFile rawDataFile" << endl;
         op.PrintOptionHelp(stderr);
         exit(0);
     }
 
     if (argc != 3) {
-        cerr << "Usage: " << ProgName << " [options] netcdffile datafile" << endl;
+        cerr << "Usage: " << ProgName << " [options] vdcFile rawDataFile" << endl;
         op.PrintOptionHelp(stderr);
         exit(1);
     }
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 
     vector<size_t> dimlens;
     bool           ok = vdc.GetVarDimLens(opt.varname, true, dimlens);
-    assert(ok == true);
+    VAssert(ok == true);
 
     size_t ntotal = 1;
     for (int i = 0; i < dimlens.size(); i++) { ntotal *= dimlens[i]; }

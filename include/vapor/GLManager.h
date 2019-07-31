@@ -34,15 +34,26 @@ struct RENDER_API GLManager {
     void PixelCoordinateSystemPush();
     void PixelCoordinateSystemPop();
 
-    static void GetGLVersion(int *major, int *minor);
-    static bool IsCurrentOpenGLVersionSupported();
-    static bool CheckError();
+    enum class Vendor { Intel, Nvidia, AMD, Mesa, Other, Unknown };
+
+    static Vendor GetVendor();
+    static void   GetGLVersion(int *major, int *minor);
+    static int    GetGLSLVersion();
+    static bool   IsCurrentOpenGLVersionSupported();
+    static bool   CheckError();
 
 #ifndef NDEBUG
     //! Draws the depth buffer in the top right corner
     //!
     void ShowDepthBuffer();
 #endif
+    static void * BeginTimer();
+    static double EndTimer(void *startTime);
+
+private:
+    static Vendor _cachedVendor;
+
+    void _queryVendor();
 };
 
 }    // namespace VAPoR

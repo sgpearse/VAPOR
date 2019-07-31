@@ -23,7 +23,7 @@
 #include <string>
 #include <cstring>
 #include <string>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <vapor/RenderParams.h>
 #include <vapor/DataMgr.h>
 
@@ -101,7 +101,6 @@ void RenderParams::_init()
     float rgb[] = {1.0, 1.0, 1.0};
     SetConstantColor(rgb);
     SetConstantOpacity(1.0);
-    SetUseSingleColor(false);
 }
 
 void RenderParams::InitBox()
@@ -135,7 +134,7 @@ void RenderParams::InitBox()
     }
     EnableErrMsg(prev);
 
-    assert(minExt.size() == maxExt.size() && (minExt.size() == 2 || minExt.size() == 3));
+    VAssert(minExt.size() == maxExt.size() && (minExt.size() == 2 || minExt.size() == 3));
 
     bool planar = minExt.size() == 2;
     if (planar) {
@@ -320,6 +319,11 @@ void RenderParams::SetColorbarPbase(ColorbarPbase *pb)
 
 void RenderParams::_calculateStride(string varName)
 {
+    if (varName.empty() || varName == "NULL") {
+        _stride = 1;
+        return;
+    }
+
     std::vector<size_t> dimsAtLevel;
     int                 ref = GetRefinementLevel();
 
@@ -365,7 +369,7 @@ MapperFunction *RenderParams::GetMapperFunc(string varname)
 
     _TFs->Insert(&tf, varname);
     tfptr = (MapperFunction *)_TFs->GetParams(varname);
-    assert(tfptr != NULL);
+    VAssert(tfptr != NULL);
 
     _ssave->SetEnabled(enabled);
 
@@ -471,6 +475,10 @@ string RenderParams::GetColorMapVariableName() const
     return (varname);
 }
 
+bool RenderParams::UseSingleColor() const { return GetValueLong(_useSingleColorTag, GetUseSingleColorDefault()); }
+
+void RenderParams::SetUseSingleColor(bool val) { SetValueLong(_useSingleColorTag, "enable/disable use single color", (long)val); }
+
 void RenderParams::SetColorMapVariableName(string varname)
 {
     varname = string_replace(varname, "<no-variable>", "NULL");
@@ -571,8 +579,8 @@ vector<string> RenParamsFactory::GetFactoryNames() const
 
 RenParamsContainer::RenParamsContainer(DataMgr *dataMgr, ParamsBase::StateSave *ssave, const string &name)
 {
-    assert(dataMgr != NULL);
-    assert(ssave != NULL);
+    VAssert(dataMgr != NULL);
+    VAssert(ssave != NULL);
 
     _dataMgr = dataMgr;
     _ssave = ssave;
@@ -584,9 +592,9 @@ RenParamsContainer::RenParamsContainer(DataMgr *dataMgr, ParamsBase::StateSave *
 
 RenParamsContainer::RenParamsContainer(DataMgr *dataMgr, ParamsBase::StateSave *ssave, XmlNode *node)
 {
-    assert(dataMgr != NULL);
-    assert(ssave != NULL);
-    assert(node != NULL);
+    VAssert(dataMgr != NULL);
+    VAssert(ssave != NULL);
+    VAssert(node != NULL);
 
     _dataMgr = dataMgr;
     _ssave = ssave;
@@ -639,7 +647,7 @@ RenParamsContainer::RenParamsContainer(const RenParamsContainer &rhs)
 
 RenParamsContainer &RenParamsContainer::operator=(const RenParamsContainer &rhs)
 {
-    assert(_separator);
+    VAssert(_separator);
 
     vector<string> mynames = GetNames();
     for (int i = 0; i < mynames.size(); i++) { Remove(mynames[i]); }
@@ -652,7 +660,7 @@ RenParamsContainer &RenParamsContainer::operator=(const RenParamsContainer &rhs)
     vector<string> names = rhs.GetNames();
     for (int i = 0; i < names.size(); i++) {
         XmlNode *eleNameNode = _separator->GetNode()->GetChild(names[i]);
-        assert(eleNameNode);
+        VAssert(eleNameNode);
 
         ParamsSeparator mySep(_ssave, eleNameNode);
 
@@ -682,7 +690,7 @@ RenParamsContainer::~RenParamsContainer()
 
 RenderParams *RenParamsContainer::Insert(const RenderParams *pb, string name)
 {
-    assert(pb != NULL);
+    VAssert(pb != NULL);
 
     if (name.empty()) { name = "NULL"; }
 
@@ -699,7 +707,7 @@ RenderParams *RenParamsContainer::Insert(const RenderParams *pb, string name)
     string        classname = pb->GetName();
     XmlNode *     node = new XmlNode(*(pb->GetNode()));
     RenderParams *mypb = RenParamsFactory::Instance()->CreateInstance(classname, _dataMgr, _ssave, node);
-    assert(mypb != NULL);
+    VAssert(mypb != NULL);
     mypb->SetParent(&mySep);
 
     _elements[name] = mypb;
@@ -709,8 +717,8 @@ RenderParams *RenParamsContainer::Insert(const RenderParams *pb, string name)
 
 RenderParams *RenParamsContainer::Create(string className, string name)
 {
-    assert(!className.empty());
-    assert(!name.empty());
+    VAssert(!className.empty());
+    VAssert(!name.empty());
 
     map<string, RenderParams *>::iterator itr = _elements.find(name);
     if (itr != _elements.end()) { delete itr->second; }
@@ -723,7 +731,7 @@ RenderParams *RenParamsContainer::Create(string className, string name)
     // Create the desired class
     //
     RenderParams *mypb = RenParamsFactory::Instance()->CreateInstance(className, _dataMgr, _ssave, NULL);
-    assert(mypb != NULL);
+    VAssert(mypb != NULL);
 
     mypb->SetParent(&mySep);
 

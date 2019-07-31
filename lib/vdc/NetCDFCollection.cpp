@@ -1,7 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <utility>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <netcdf.h>
 #include <vapor/NetCDFCollection.h>
 
@@ -164,6 +164,11 @@ int NetCDFCollection::Initialize(const vector<string> &files, const vector<strin
                 continue;
             }
         }
+    }
+
+    for (auto itr = _variableList.begin(); itr != _variableList.end(); ++itr) {
+        TimeVaryingVar &tvvref = itr->second;
+        tvvref.Sort();
     }
 
     return (0);
@@ -1367,7 +1372,7 @@ int NetCDFCollection::Read(size_t start[], size_t count[], float *data, int fd)
 
 int NetCDFCollection::Read(vector<size_t> start, vector<size_t> count, float *data, int fd)
 {
-    assert(start.size() == count.size());
+    VAssert(start.size() == count.size());
 
     size_t mystart[NC_MAX_VAR_DIMS];
     size_t mycount[NC_MAX_VAR_DIMS];
@@ -1401,7 +1406,7 @@ int NetCDFCollection::Read(size_t start[], size_t count[], int *data, int fd)
 
 int NetCDFCollection::Read(vector<size_t> start, vector<size_t> count, int *data, int fd)
 {
-    assert(start.size() == count.size());
+    VAssert(start.size() == count.size());
 
     size_t mystart[NC_MAX_VAR_DIMS];
     size_t mycount[NC_MAX_VAR_DIMS];
@@ -1574,7 +1579,7 @@ void NetCDFCollection::InstallDerivedVar(string varname, DerivedVar *derivedVar)
 {
     vector<string> sdimnames = derivedVar->GetSpatialDimNames();
     vector<size_t> sdimlens = derivedVar->GetSpatialDims();
-    assert(sdimlens.size() == sdimnames.size());
+    VAssert(sdimlens.size() == sdimnames.size());
 
     // Add any new dimensions to the dimensions map. Should be
     // checking for re-definition of exisiting dimensions, but
@@ -1625,10 +1630,6 @@ NetCDFCollection::TimeVaryingVar::TimeVaryingVar()
     _time_name.clear();
     _time_varying = false;
 }
-
-namespace VAPoR {
-bool tvmap_cmp(NetCDFCollection::TimeVaryingVar::tvmap_t a, NetCDFCollection::TimeVaryingVar::tvmap_t b) { return (a._time < b._time); };
-}    // namespace VAPoR
 
 int NetCDFCollection::TimeVaryingVar::Insert(const NetCDFSimple *netcdf, const NetCDFSimple::Variable &variable, string file, const vector<string> &time_dimnames,
                                              const map<string, vector<double>> &timesmap, int file_org)
@@ -1708,11 +1709,6 @@ int NetCDFCollection::TimeVaryingVar::Insert(const NetCDFSimple *netcdf, const N
         local_ts++;
     }
 
-    //
-    // Sort variable by time
-    //
-    std::sort(_tvmaps.begin(), _tvmaps.end(), tvmap_cmp);
-
     return (0);
 }
 
@@ -1779,6 +1775,17 @@ bool NetCDFCollection::TimeVaryingVar::GetMissingValue(string attname, double &m
 
     mv = vec[0];
     return (true);
+}
+
+void NetCDFCollection::TimeVaryingVar::Sort()
+{
+    //
+    // Sort variable by time
+    //
+
+    auto lambda = [](const NetCDFCollection::TimeVaryingVar::tvmap_t &s1, const NetCDFCollection::TimeVaryingVar::tvmap_t &s2) -> bool { return (s1._time < s2._time); };
+
+    std::sort(_tvmaps.begin(), _tvmaps.end(), lambda);
 }
 
 NetCDFCollection::fileHandle::fileHandle()

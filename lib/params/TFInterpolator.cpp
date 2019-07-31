@@ -17,7 +17,7 @@
 //		Currently only supports linear interpolation
 //
 #include <cmath>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <iostream>
 #include <vapor/TFInterpolator.h>
 using namespace std;
@@ -60,7 +60,7 @@ float TFInterpolator::interpolate(TFInterpolator::type t, float leftVal, float r
     }
     float val = (float)(leftVal * (1. - r) + r * rightVal);
     // if (val < 0.f || val > 1.f){
-    // assert(val <= 1.f && val >= 0.f);
+    // VAssert(val <= 1.f && val >= 0.f);
     //}
     return val;
 }
@@ -83,7 +83,7 @@ float TFInterpolator::interpCirc(type t, float leftVal, float rightVal, float r)
         interpVal = interpolate(t, leftVal, rightVal + 1.f, r);
 
     if (interpVal >= 1.f) interpVal -= 1.f;
-    if (interpVal < 0.f || interpVal > 1.f) { assert(interpVal <= 1.f && interpVal >= 0.f); }
+    if (interpVal < 0.f || interpVal > 1.f) { VAssert(interpVal <= 1.f && interpVal >= 0.f); }
     return interpVal;
 }
 

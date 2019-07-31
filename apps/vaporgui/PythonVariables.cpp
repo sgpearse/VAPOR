@@ -36,6 +36,9 @@ PythonVariables::PythonVariables(QWidget *parent) : QDialog(parent), Ui_PythonVa
 {
     setupUi(this);
 
+    _importScriptButton->hide();
+    _exportScriptButton->hide();
+
     setWindowTitle("Derived variables with Python");
 
     _script = "";
@@ -863,7 +866,7 @@ int PythonVariables::_checkForDuplicateNames(std::vector<string> names, string n
 
 void PythonVariables::InitControlExec(VAPoR::ControlExec *ce)
 {
-    assert(ce);
+    VAssert(ce);
     _controlExec = ce;
 }
 

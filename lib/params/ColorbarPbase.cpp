@@ -19,7 +19,7 @@
 //
 
 #include <vector>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <vapor/ColorbarPbase.h>
 
 using namespace VAPoR;
@@ -185,7 +185,7 @@ vector<double> ColorbarPbase::GetBackgroundColor() const
 //! \param[in] color = (r,g,b)
 void ColorbarPbase::SetBackgroundColor(vector<double> color)
 {
-    assert(color.size() == 3);
+    VAssert(color.size() == 3);
     for (int i = 0; i < color.size(); i++) {
         if (color[i] < 0.0) color[i] = 0.0;
         if (color[i] > 1.0) color[i] = 1.0;

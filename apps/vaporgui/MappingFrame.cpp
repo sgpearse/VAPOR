@@ -16,7 +16,7 @@
 
 #include <vapor/glutil.h>    // Must be included first!!!
 #include <iostream>
-#include <cassert>
+#include "vapor/VAssert.h"
 #include <cmath>
 #include <qcursor.h>
 #include <QMenu>
@@ -32,7 +32,7 @@
 #include <vapor/MapperFunction.h>
 #include <vapor/OpacityMap.h>
 #include <vapor/ContourParams.h>
-#include <vapor/IsoSurfaceParams.h>
+#include <vapor/VolumeIsoParams.h>
 #include "OpacityWidget.h"
 #include "DomainWidget.h"
 #include "GLColorbarWidget.h"
@@ -182,7 +182,7 @@ void MappingFrame::RefreshHistogram()
 {
     MapperFunction *mapper;
     mapper = _rParams->GetMapperFunc(_variableName);
-    assert(mapper);
+    VAssert(mapper);
     updateMapperFunction(mapper);
 
     string rendererName = getActiveRendererName();
@@ -328,7 +328,7 @@ void MappingFrame::populateIteratingHistogram()
 //----------------------------------------------------------------------------
 void MappingFrame::updateMapperFunction(MapperFunction *mapper)
 {
-    assert(mapper);
+    VAssert(mapper);
     deleteOpacityWidgets();
 
     _mapper = mapper;
@@ -379,7 +379,7 @@ void MappingFrame::setOpacityMapping(bool flag)
     } else {
         // Error condition. Can't enable opacity mapping after it has been
         // disabled.
-        // assert(0);
+        // VAssert(0);
     }
 }
 
@@ -404,7 +404,7 @@ void MappingFrame::setColorMapping(bool flag)
     } else {
         // Error condition. Can't enable opacity mapping after it has been
         // disabled.
-        // assert(0);
+        // VAssert(0);
     }
 }
 
@@ -415,9 +415,9 @@ bool MappingFrame::Update(DataMgr *dataMgr, ParamsMgr *paramsMgr, RenderParams *
 {
     bool histogramRecalculated = false;
 
-    assert(dataMgr);
-    assert(paramsMgr);
-    assert(rParams);
+    VAssert(dataMgr);
+    VAssert(paramsMgr);
+    VAssert(rParams);
 
     _dataMgr = dataMgr;
     _rParams = rParams;
@@ -436,7 +436,7 @@ bool MappingFrame::Update(DataMgr *dataMgr, ParamsMgr *paramsMgr, RenderParams *
 
     MapperFunction *mapper;
     mapper = _rParams->GetMapperFunc(_variableName);
-    assert(mapper);
+    VAssert(mapper);
 
     updateMapperFunction(mapper);
 
@@ -462,26 +462,21 @@ bool MappingFrame::Update(DataMgr *dataMgr, ParamsMgr *paramsMgr, RenderParams *
         //	   _isoSlider->setIsoValue(xDataToWorld(_isoVal));
     } else if (_isolineSlidersEnabled) {
         // Synchronize sliders with isovalues
-        vector<double>    isovals;
-        ContourParams *   cp;
-        IsoSurfaceParams *ip;
+        vector<double>   isovals;
+        ContourParams *  cp;
+        VolumeIsoParams *vp;
 
         // This should probably be rethought
         // Maybe we need an IsoParams base class?
         cp = dynamic_cast<ContourParams *>(rParams);
-        if (cp == NULL) {
-            ip = dynamic_cast<IsoSurfaceParams *>(rParams);
-            assert(ip);
-            isovals = ip->GetIsoValues();
-            // std::vector<bool>enabled = ip->GetEnabledIsoValueFlags();
-            // int size = enabled.size();
-            // for (int i=size-1; i>=0; i--) {
-            //    if (!enabled[i])
-            //        isovals.erase(isovals.begin()+i);
-            //}
-        } else {
+        vp = dynamic_cast<VolumeIsoParams *>(rParams);
+
+        if (cp)
             isovals = cp->GetContourValues(_variableName);
-        }
+        else if (vp)
+            isovals = vp->GetIsoValues();
+        else
+            VAssert(0);    // This is what the old code did
 
         setIsolineSliders(isovals);
 
@@ -546,7 +541,7 @@ QString MappingFrame::tipText(const QPoint &pos, bool isIso)
 //----------------------------------------------------------------------------
 int MappingFrame::histoValue(const QPoint &p)
 {
-    assert(_histogram);
+    VAssert(_histogram);
 
     QPoint pos = mapFromParent(p);
 
@@ -905,6 +900,17 @@ void MappingFrame::paintGL()
 
     if (!_mapper) { return; }
 
+    // The Qt paint API which is used for rendering text here requires
+    // a QPainter to be configured. On Windows, if it is not configured,
+    // it will corrupt OpenGL. It turns out this is still not the correct
+    // configuration but it fixes the issue on Windows. On other OS it
+    // causes a warning to be printed. Since this code will be (hopefully)
+    // re-written soon, I don't bother fixing it.
+#ifdef WIN32
+    QPainter p(this);
+    p.beginNativePainting();
+#endif
+
     resize();
 
     int rc = CheckGLErrorMsg("MappingFrame::paintGL");
@@ -948,6 +954,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -958,6 +967,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -968,6 +980,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         oglPopState();
         MSG_ERR("MappingFrame");
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -978,6 +993,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -985,6 +1003,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -992,6 +1013,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
     //
@@ -1022,6 +1046,9 @@ void MappingFrame::paintGL()
     if (rc < 0) {
         MSG_ERR("MappingFrame");
         oglPopState();
+#ifdef WIN32
+        p.endNativePainting();
+#endif
         return;
     }
 
@@ -1073,6 +1100,10 @@ void MappingFrame::paintGL()
     glFlush();
 
     oglPopState();
+
+#ifdef WIN32
+    p.endNativePainting();
+#endif
 
     CheckGLErrorMsg("MappingFrame::paintGL");
 }
@@ -1240,8 +1271,9 @@ int MappingFrame::drawIsolineSliders()
 {
     // std::vector<bool> enabledIsoValues(true, _isolineSliders.size());
     std::vector<bool> enabledIsoValues(_isolineSliders.size(), true);
-    IsoSurfaceParams *ip = dynamic_cast<IsoSurfaceParams *>(_rParams);
-    if (ip != NULL) { enabledIsoValues = ip->GetEnabledIsoValueFlags(); }
+    VolumeIsoParams * vp = dynamic_cast<VolumeIsoParams *>(_rParams);
+
+    if (vp != NULL) enabledIsoValues = vp->GetEnabledIsoValues();
 
     for (int i = 0; i < _isolineSliders.size(); i++) {
         if (enabledIsoValues[i] == true) {
@@ -1576,7 +1608,7 @@ void MappingFrame::select(int hits, GLuint *selectionBuffer, Qt::KeyboardModifie
         }
     }
 
-    assert(_lastSelected);
+    VAssert(_lastSelected);
 
     _lastSelected->select(selectionBuffer[hitOffset + maxCount + 2], state);
 
@@ -1879,11 +1911,10 @@ void MappingFrame::contextMenuEvent(QContextMenuEvent * /*event*/)
         _widgetEnabledSubMenu->actions()[ENABLED]->setEnabled(opacWidget->enabled());
         _widgetEnabledSubMenu->actions()[DISABLED]->setEnabled(!opacWidget->enabled());
 
-        QAction *ac = _contextMenu->addMenu(_widgetEnabledSubMenu);
-        ac->setText("Opacity Contribution");
-        _contextMenu->addAction(_deleteOpacityWidgetAction);
-
-        _contextMenu->addSeparator();
+        //    QAction* ac = _contextMenu->addMenu(_widgetEnabledSubMenu);
+        //    ac->setText("Opacity Contribution");
+        //    _contextMenu->addAction(_deleteOpacityWidgetAction);
+        //    _contextMenu->addSeparator();
 
         if (_colorbarWidget) { _contextMenu->addAction(_addColorControlPointAction); }
     }
@@ -1904,8 +1935,8 @@ void MappingFrame::contextMenuEvent(QContextMenuEvent * /*event*/)
     //
     else {
         if (_opacityMappingEnabled) {
-            QAction *act = _contextMenu->addMenu(_addOpacityWidgetSubMenu);
-            act->setText("New Opacity Widget");
+            // QAction* act = _contextMenu->addMenu(_addOpacityWidgetSubMenu);
+            // act->setText("New Opacity Widget");
         }
 
         _contextMenu->addSeparator();
@@ -2010,7 +2041,7 @@ float MappingFrame::yWorldToData(float y)
 //----------------------------------------------------------------------------
 float MappingFrame::yViewToWorld(float y)
 {
-    assert(height() != 0);
+    VAssert(height() != 0);
     return _minY + ((y / (float)height()) * (_maxY - _minY));
 }
 
@@ -2337,22 +2368,23 @@ void MappingFrame::setIsolineSlider(int index)
     float      min = xWorldToData(iSlider->minValue());
     float      max = xWorldToData(iSlider->maxValue());
 
-    emit              startChange("Slide Isoline value slider");
-    IsoSurfaceParams *iParams = dynamic_cast<IsoSurfaceParams *>(_rParams);
+    emit             startChange("Slide Isoline value slider");
+    VolumeIsoParams *vParams = dynamic_cast<VolumeIsoParams *>(_rParams);
 
     // If _rParams is not an IsoSurfaceParams, then it's a ContourParams.
     // Therefore, we ignore the user's change to the isoline, an force a
     // redrawing of the MappingFrame through calls to Update() and updateGL().
     // I wish there were a cleaner way to do this, with fewer dynamic casts.
-    if (iParams == NULL) {
+
+    if (vParams) {
+        vector<double> isovals = vParams->GetIsoValues();
+        isovals[index] = (0.5 * (max + min));
+        vParams->SetIsoValues(isovals);
+    } else {
         Update(_dataMgr, _paramsMgr, _rParams);
         updateGL();
         return;
     }
-
-    vector<double> isovals = iParams->GetIsoValues();
-    isovals[index] = (0.5 * (max + min));
-    iParams->SetIsoValues(isovals);
 
     emit endChange();
 
