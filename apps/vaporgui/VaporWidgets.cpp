@@ -284,17 +284,17 @@ VGeometry::VGeometry(QWidget *parent, int dim, const std::vector<float> &range, 
 {
     VAssert(dim == 2 || dim == 3);
     VAssert(range.size() == dim * 2);
-    for (int i = 0; i < dim; i++) VAssert(range[i * 2] < range[i * 2 + 1]);
+    for (int i = 0; i < dim; i++) VAssert(range[i] < range[i + 3]);
 
     QWidget *    pageWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout();
     pageWidget->setLayout(layout);
 
     _dim = dim;
-    _xrange = new VRange(pageWidget, range[0], range[1], "XMin", "XMax");
-    _yrange = new VRange(pageWidget, range[2], range[3], "YMin", "YMax");
+    _xrange = new VRange(pageWidget, range[0], range[3], "XMin", "XMax");
+    _yrange = new VRange(pageWidget, range[1], range[4], "YMin", "YMax");
     if (_dim == 3)
-        _zrange = new VRange(pageWidget, range[4], range[5], "ZMin", "ZMax");
+        _zrange = new VRange(pageWidget, range[2], range[5], "ZMin", "ZMax");
     else    // Create anyway. Will be hidden though.
     {
         _zrange = new VRange(pageWidget, 0.0f, 100.0f, "ZMin", "ZMax");
@@ -318,7 +318,7 @@ void VGeometry::SetDimAndRange(int dim, const std::vector<float> &range)
 {
     VAssert(dim == 2 || dim == 3);
     VAssert(range.size() == dim * 2);
-    for (int i = 0; i < dim; i++) VAssert(range[i * 2] < range[i * 2 + 1]);
+    for (int i = 0; i < dim; i++) VAssert(range[i] < range[i + 3]);
 
     /* Adjust the appearance if necessary */
     if (_dim == 2 && dim == 3)
@@ -327,23 +327,23 @@ void VGeometry::SetDimAndRange(int dim, const std::vector<float> &range)
         _zrange->hide();
     _dim = dim;
 
-    _xrange->SetRange(range[0], range[1]);
-    _yrange->SetRange(range[2], range[3]);
-    if (_dim == 3) _zrange->SetRange(range[4], range[5]);
+    _xrange->SetRange(range[0], range[3]);
+    _yrange->SetRange(range[1], range[4]);
+    if (_dim == 3) _zrange->SetRange(range[2], range[5]);
 }
 
 void VGeometry::SetCurrentValues(const std::vector<float> &vals)
 {
     VAssert(vals.size() == _dim * 2);
-    for (int i = 0; i < _dim; i++) VAssert(vals[i * 2] < vals[i * 2 + 1]);
+    for (int i = 0; i < _dim; i++) VAssert(vals[i] < vals[i + 3]);
 
     /* VRange widgets will only respond to values within their ranges */
     _xrange->SetCurrentValLow(vals[0]);
-    _xrange->SetCurrentValHigh(vals[1]);
-    _yrange->SetCurrentValLow(vals[2]);
-    _yrange->SetCurrentValHigh(vals[3]);
+    _xrange->SetCurrentValHigh(vals[3]);
+    _yrange->SetCurrentValLow(vals[1]);
+    _yrange->SetCurrentValHigh(vals[4]);
     if (_dim == 3) {
-        _zrange->SetCurrentValLow(vals[4]);
+        _zrange->SetCurrentValLow(vals[2]);
         _zrange->SetCurrentValHigh(vals[5]);
     }
 }
@@ -351,9 +351,9 @@ void VGeometry::SetCurrentValues(const std::vector<float> &vals)
 void VGeometry::GetCurrentValues(std::vector<float> &vals) const
 {
     vals.resize(_dim * 2, 0.0f);
-    _xrange->GetCurrentValRange(vals[0], vals[1]);
-    _yrange->GetCurrentValRange(vals[2], vals[3]);
-    if (_dim == 3) _zrange->GetCurrentValRange(vals[4], vals[5]);
+    _xrange->GetCurrentValRange(vals[0], vals[3]);
+    _yrange->GetCurrentValRange(vals[1], vals[4]);
+    if (_dim == 3) _zrange->GetCurrentValRange(vals[2], vals[5]);
 }
 
 void VGeometry::_respondChanges() { emit _geometryChanged(); }
