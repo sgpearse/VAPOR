@@ -201,7 +201,7 @@ private:
 // Note: this class is never supposed to be used beyond 2D and 3D cases.
 // ====================================
 //
-class VGeometry : public QWidget {
+class VGeometry : public QTabWidget {
     Q_OBJECT
 
 public:
@@ -231,6 +231,7 @@ private:
     int          _dim;
     VRange *     _xrange, *_yrange, *_zrange;
     QVBoxLayout *_layout;
+    QWidget *    _pageWidget;
 };
 
 //
