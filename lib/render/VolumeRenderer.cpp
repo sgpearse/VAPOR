@@ -557,7 +557,7 @@ int VolumeRenderer::OSPRayLoadData(OSPModel world)
     else
         _volume = OSPRayCreateVolumeFromGrid(grid, _ospCache.coordTransform);
 
-    if (_volume) ospAddVolume(world, _volume);
+    if (_volume) OSPRayAddObjectToWorld(world);
 
     delete grid;
 
