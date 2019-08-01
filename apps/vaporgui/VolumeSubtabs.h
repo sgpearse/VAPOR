@@ -54,7 +54,6 @@ private slots:
     void on__specularWidget_valueChanged(double value);
     void on__shininessWidget_valueChanged(int value);
     void on__defaultLightingButton_clicked(bool checked);
-    void ospray_clicked(bool checked);
 
 private:
     VAPoR::VolumeParams * _params;
