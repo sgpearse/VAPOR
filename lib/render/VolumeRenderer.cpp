@@ -385,12 +385,17 @@ int VolumeRenderer::_loadData()
     return ret;
 }
 
-int VolumeRenderer::_loadSecondaryData()
+bool VolumeRenderer::_needToLoadSecondaryData()
 {
     VolumeParams *vp = (VolumeParams *)GetActiveParams();
     CheckCache(_cache.useColorMapVar, _usingColorMapData());
     CheckCache(_cache.colorMapVar, vp->GetColorMapVariableName());
-    if (!_cache.needsUpdate) return 0;
+    return _cache.needsUpdate;
+}
+
+int VolumeRenderer::_loadSecondaryData()
+{
+    if (!_needToLoadSecondaryData()) return 0;
 
     if (_cache.useColorMapVar) {
         Grid *grid = _dataMgr->GetVariable(_cache.ts, _cache.colorMapVar, _cache.refinement, _cache.compression);
@@ -503,6 +508,7 @@ int VolumeRenderer::OSPRayUpdate(OSPModel world)
 
     _initializeAlgorithm();
     if (OSPRayLoadData(world) < 0) return -1;
+    if (OSPRayLoadSecondaryData(world) < 0) return -1;
     if (OSPRayLoadTF() < 0) return -1;
 
     ospSet1b(_volume, "singleShade", false);
@@ -532,8 +538,12 @@ void VolumeRenderer::OSPRayDelete(OSPModel world)
 
     ospRelease(_volume);
     _volume = nullptr;
+    ospRelease(_colormappingVolume);
+    _colormappingVolume = nullptr;
     ospRelease(_tf);
     _tf = nullptr;
+    ospRelease(_colormappingTF);
+    _colormappingTF = nullptr;
 }
 
 bool VolumeRenderer::OSPRayNeedToLoadData()
@@ -552,12 +562,7 @@ int VolumeRenderer::OSPRayLoadData(OSPModel world)
 
     Grid *grid = _dataMgr->GetVariable(_cache.ts, _cache.var, _cache.refinement, _cache.compression);
 
-    if (GetActiveParams()->GetValueLong("force_regular", 0))
-        _volume = OSPRayCreateVolumeFromRegularGrid(grid, _ospCache.coordTransform);
-    else if (false)
-        _volume = OSPRayCreateVolumeFromUnstructuredGrid(grid, _ospCache.coordTransform);
-    else
-        _volume = OSPRayCreateVolumeFromGrid(grid, _ospCache.coordTransform);
+    _volume = OSPRayCreateVolumeFromGrid(grid, _ospCache.coordTransform);
 
     if (_volume) OSPRayAddObjectToWorld(world);
 
@@ -567,6 +572,31 @@ int VolumeRenderer::OSPRayLoadData(OSPModel world)
         return 0;
     else
         return -1;
+}
+
+int VolumeRenderer::OSPRayLoadSecondaryData(OSPModel world)
+{
+    if (!_needToLoadSecondaryData()) return 0;
+
+    if (_colormappingVolume) {
+        ospRelease(_colormappingVolume);
+        _colormappingVolume = nullptr;
+        ospRelease(_colormappingTF);
+        _colormappingTF = nullptr;
+    }
+
+    if (_cache.useColorMapVar) {
+        Grid *grid = _dataMgr->GetVariable(_cache.ts, _cache.colorMapVar, _cache.refinement, _cache.compression);
+        if (!grid) return -1;
+        _colormappingVolume = OSPRayCreateVolumeFromGrid(grid, _ospCache.coordTransform);
+        delete grid;
+
+        if (_colormappingVolume)
+            return 0;
+        else
+            return -1;
+    }
+    return 0;
 }
 
 OSPVolume VolumeRenderer::OSPRayCreateVolumeFromGrid(const Grid *grid, const glm::mat4 &transform)
@@ -761,12 +791,12 @@ OSPVolume VolumeRenderer::OSPRayCreateVolumeFromUnstructuredGrid(const Grid *gri
 
         n[numNodes - 1]++;
         if (numNodes == 4) {
-            OSPRayCell c = {{-1}};
+            OSPRayCell c = {{-1, -1, -1, -1}};
             for (int i = 0; i < 4; i++) c.i[i + 4] = nodes[i * nodeDim] + nodes[i * nodeDim + 1] * nodeDims[0];
 
             cells[cellId++] = c;
         } else if (numNodes == 6) {
-            OSPRayCell c = {{-2}};
+            OSPRayCell c = {{-2, -2}};
             for (int i = 0; i < 6; i++) c.i[i + 2] = nodes[i * nodeDim] + nodes[i * nodeDim + 1] * nodeDims[0];
 
             cells[cellId++] = c;
@@ -806,12 +836,18 @@ int VolumeRenderer::OSPRayLoadTF()
     _cache.tf = new MapperFunction(*tf);
     _cache.mapRange = tf->getMinMaxMapValue();
 
-    float *LUT = new float[4 * 256];
-    tf->makeLut(LUT);
+    return OSPRayLoadTF(_volume, &_tf, tf);
+}
 
-    if (!_tf) {
-        _tf = ospNewTransferFunction("piecewise_linear");
-        ospSetObject(_volume, "transferFunction", _tf);
+int VolumeRenderer::OSPRayLoadTF(OSPVolume volume, OSPTransferFunction *ospTF, MapperFunction *vTF)
+{
+    VAssert(volume);
+    float *LUT = new float[4 * 256];
+    vTF->makeLut(LUT);
+
+    if (!*ospTF) {
+        *ospTF = ospNewTransferFunction("piecewise_linear");
+        ospSetObject(volume, "transferFunction", *ospTF);
     }
 
     float colors[3 * 256];
@@ -828,15 +864,15 @@ int VolumeRenderer::OSPRayLoadTF()
     OSPData opacityData = ospNewData(256, OSP_FLOAT, opacities);
     ospCommit(colorData);
     ospCommit(opacityData);
-    ospSetData(_tf, "colors", colorData);
-    ospSetData(_tf, "opacities", opacityData);
+    ospSetData(*ospTF, "colors", colorData);
+    ospSetData(*ospTF, "opacities", opacityData);
     ospRelease(colorData);
     ospRelease(opacityData);
 
-    osp::vec2f valueRange = {(float)_cache.mapRange[0], (float)_cache.mapRange[1]};
-    ospSetVec2f(_tf, "valueRange", valueRange);
+    osp::vec2f valueRange = {vTF->getMinMapValue(), vTF->getMaxMapValue()};
+    ospSetVec2f(*ospTF, "valueRange", valueRange);
 
-    ospCommit(_tf);
+    ospCommit(*ospTF);
 
     return 0;
 }
