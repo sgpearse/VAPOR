@@ -26,8 +26,6 @@ template<class T> void VaporWidget::Update(T value) {}
 // template <class T>
 // T GetValue() { return nullptr; }
 
-int VaporWidget::GetValue() { return -1; }
-
 VaporLine::VaporLine(QWidget *parent, const std::string &labelText) : VaporWidget(parent)
 {
     _layout = new QHBoxLayout(this);
