@@ -1,88 +1,127 @@
 #ifndef VAPORWIDGETS_H
 #define VAPORWIDGETS_H
 
-class QWidget;
+class QDir;
 class QLabel;
+class QWidget;
+class QSlider;
+class QSpinBox;
 class QComboBox;
 class QCheckBox;
-class QPushButton;
 class QLineEdit;
-class QSlider;
+class QPushButton;
 class QSpacerItem;
 class QHBoxLayout;
 class QVBoxLayout;
-class QSpinBox;
 class QDoubleSpinBox;
 
 #include <cmath>
 #include <QTabWidget>
+#include <QFileDialog>
+
+class VaporWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    VaporWidget(QWidget *parent = 0);
+
+    template<class T> void Update(T value);
+
+    // template <class T>
+    // T GetValue() const;
+    virtual int GetValue();
+
+private slots:
+    virtual void _validateAndEmit() = 0;
+
+signals:
+    void _valueChanged();
+};
 
 //
 // ====================================
 //
-class VaporWidget : public QWidget {
+class VaporLine : public VaporWidget {
     Q_OBJECT
 
 public:
     void SetLabelText(const std::string &text);
     void SetLabelText(const QString &text);
 
+    template<class T> void Update(T labelText);
+
+    // template <class T>
+    // T GetValue() const;
+    virtual int GetValue() { return 0; }
+
 protected:
-    VaporWidget(QWidget *parent, const std::string &labelText);
-    VaporWidget(QWidget *parent, const QString &labelText);
+    VaporLine(QWidget *parent, const std::string &labelText);
+    VaporLine(QWidget *parent, const QString &labelText);
 
     QLabel *     _label;
     QSpacerItem *_spacer;
     QHBoxLayout *_layout;
+
+protected slots:
+    virtual void _validateAndEmit();
 };
 
 //
 // ====================================
 //
-class VSpinBox : public VaporWidget {
+class VSpinBox : public VaporLine {
     Q_OBJECT
 
 public:
-    VSpinBox(QWidget *parent, const std::string &labelText = "Label", int defaultValue = 0);
+    VSpinBox(QWidget *parent, const std::string &labelText = "Label", int min = 0, int max = 100, int defaultValue = 0);
+
+    template<class T> void Update(T value);
+
+    // template <class T>
+    // T GetValue() const;
+    virtual int GetValue() { return 1; }
 
     void SetMaximum(int maximum);
     void SetMinimum(int minimum);
-    void SetValue(int value);
-    int  GetValue() const;
-
-signals:
-    void _valueChanged();
 
 protected:
     QSpinBox *_spinBox;
 
-private slots:
-    void _changed();
-
 private:
+    int _min;
+    int _max;
     int _value;
+
+protected slots:
+    virtual void _validateAndEmit();
 };
 
+/*
 //
 // ====================================
 //
-class VDoubleSpinBox : public VaporWidget {
+class VDoubleSpinBox : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VDoubleSpinBox(QWidget *parent, const std::string &labelText = "Label", double defaultValue = 0.f);
+    VDoubleSpinBox(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        double defaultValue = 0.f
+    );
 
-    void   SetMaximum(double maximum);
-    void   SetMinimum(double minimum);
-    void   SetValue(double value);
-    void   SetDecimals(int decimals);
+    void SetMaximum( double maximum );
+    void SetMinimum( double minimum );
+    void SetValue( double value );
+    void SetDecimals( int decimals );
     double GetValue() const;
 
 signals:
-    void _valueChanged();
+    void _emitValueChanged();
 
 protected:
-    QDoubleSpinBox *_spinBox;
+    QDoubleSpinBox* _spinBox;
 
 private slots:
     void _changed();
@@ -95,22 +134,27 @@ private:
 //
 // ====================================
 //
-class VLineEdit : public VaporWidget {
+class VLineEdit : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VLineEdit(QWidget *parent, const std::string &labelText = "Label", const std::string &editText = "");
+    VLineEdit(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        const std::string& editText = ""
+    );
     ~VLineEdit();
 
-    void        SetEditText(const std::string &text);
-    void        SetEditText(const QString &text);
+    void SetEditText( const std::string& text );
+    void SetEditText( const QString& text );
     std::string GetEditText() const;
 
 signals:
     void _editingFinished();
 
 protected:
-    QLineEdit *_edit;
+    QLineEdit* _edit;
 
 private slots:
     void _relaySignal();
@@ -133,30 +177,31 @@ private:
 //   Thus this widget uses an internal variable to keep the actual value in float.
 // ====================================
 //
-class VSlider : public VaporWidget {
+class VSlider : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VSlider(QWidget *parent, const std::string &label, float min, float max);
+    VSlider( QWidget* parent, const std::string& label, float min, float max );
     ~VSlider();
 
-    void  SetRange(float min, float max);
-    void  SetCurrentValue(float val);
+    void  SetRange( float min, float max );
+    void  SetCurrentValue( float val );
     float GetCurrentValue() const;
 
 signals:
-    /* This signal is emitted representing the entire widget */
-    void _valueChanged();
+    // This signal is emitted representing the entire widget
+    void  _emitValueChanged();
 
 private slots:
-    void _respondQSliderReleased();    // emit signal
-    void _respondQSliderMoved(int);    // sync qSlider and qLineEdit
-    void _respondQLineEdit();          // emit signal
+    void  _respondQSliderReleased();    // emit signal
+    void  _respondQSliderMoved(int);    // sync qSlider and qLineEdit
+    void  _respondQLineEdit();          // emit signal
 
 private:
-    float      _min, _max, _currentVal;
-    QSlider *  _qslider;
-    QLineEdit *_qedit;
+    float       _min, _max, _currentVal;
+    QSlider*    _qslider;
+    QLineEdit*  _qedit;
 };
 
 //
@@ -165,33 +210,36 @@ private:
 // representing the min and max values of a range.
 // ====================================
 //
-class VRange : public QWidget {
+class VRange : public QWidget
+{
     Q_OBJECT
 
 public:
-    VRange(QWidget *parent, float min, float max, const std::string &minLabel = "Min", const std::string &maxLabel = "Max");
+    VRange( QWidget* parent, float min, float max,
+            const std::string& minLabel = "Min",
+            const std::string& maxLabel = "Max"  );
     ~VRange();
 
-    void SetRange(float min, float max);
-    void SetCurrentValLow(float);
-    void SetCurrentValHigh(float);
-    void GetCurrentValRange(float &low, float &high) const;
+    void  SetRange( float min, float max );
+    void  SetCurrentValLow(    float );
+    void  SetCurrentValHigh(   float );
+    void  GetCurrentValRange(  float& low, float& high ) const;
 
 signals:
-    void _rangeChanged();
+    void  _rangeChanged();
 
 private slots:
-    void _respondMinSlider();
-    void _respondMaxSlider();
+    void  _respondMinSlider();
+    void  _respondMaxSlider();
 
 private:
-    VSlider *    _minSlider, *_maxSlider;
-    QVBoxLayout *_layout;
+    VSlider        *_minSlider, *_maxSlider;
+    QVBoxLayout*    _layout;
 
-    /* In case _minSlider is changed, adjust _maxSlider if necessary. */
-    void _adjustMaxToMin();
-    /* In case _maxSlider is changed, adjust _minSlider if necessary. */
-    void _adjustMinToMax();
+    // In case _minSlider is changed, adjust _maxSlider if necessary.
+    void  _adjustMaxToMin();
+    // In case _maxSlider is changed, adjust _minSlider if necessary.
+    void  _adjustMinToMax();
 };
 
 //
@@ -201,78 +249,94 @@ private:
 // Note: this class is never supposed to be used beyond 2D and 3D cases.
 // ====================================
 //
-class VGeometry : public QTabWidget {
+class VGeometry : public QTabWidget
+{
     Q_OBJECT
 
 public:
-    /* Constructor for 2D or 3D geometries.
-       Four floating point values imply a 2D geometry, while Six floating point
-       values imply a 3D geometry. All other numbers are illegal. */
-    VGeometry(QWidget *parent, int dim, const std::vector<float> &range, const std::string &label = "Geometry");
+    // Constructor for 2D or 3D geometries.
+    //   Four floating point values imply a 2D geometry, while Six floating point
+    //   values imply a 3D geometry. All other numbers are illegal.
+    VGeometry(
+        QWidget* parent,
+        int dim,
+        const std::vector<float>& range,
+        const std::string& label = "Geometry"
+    );
 
     ~VGeometry();
 
-    /* Adjust the dimension and/or value ranges through this function.
-       Argument range must contain 4 or 6 values organized in the following order:
-       xmin, xmax, ymin, ymax, (zmin, zmax).                                    */
-    void SetDimAndRange(int dim, const std::vector<float> &range);
-    /* The number of incoming values MUST match the current dimensionality.
-       I.e., 4 values for 2D widgets, and 6 values for 3D widgets.       */
-    void SetCurrentValues(const std::vector<float> &vals);
-    void GetCurrentValues(std::vector<float> &vals) const;
+    // Adjust the dimension and/or value ranges through this function.
+    //   Argument range must contain 4 or 6 values organized in the following order:
+    //   xmin, xmax, ymin, ymax, (zmin, zmax).
+    void  SetDimAndRange( int dim, const std::vector<float>& range );
+    // The number of incoming values MUST match the current dimensionality.
+    //   I.e., 4 values for 2D widgets, and 6 values for 3D widgets.
+    void  SetCurrentValues( const std::vector<float>& vals );
+    void  GetCurrentValues( std::vector<float>& vals ) const;
 
 signals:
-    void _geometryChanged();
+    void  _geometryChanged();
 
 private slots:
-    void _respondChanges();
+    void  _respondChanges();
 
 private:
-    int     _dim;
-    VRange *_xrange, *_yrange, *_zrange;
-    // QVBoxLayout* _layout;
-    // QWidget*     _pageWidget;
+    int          _dim;
+    VRange      *_xrange, *_yrange, *_zrange;
+    //QVBoxLayout* _layout;
+    //QWidget*     _pageWidget;
 };
 
 //
 // ====================================
 //
-class VPushButton : public VaporWidget {
+class VPushButton : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VPushButton(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Button");
+    VPushButton(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        const std::string& buttonText = "Button"
+    );
 
-    void SetButtonText(const std::string &text);
-    void SetButtonText(const QString &text);
+    void SetButtonText( const std::string& text );
+    void SetButtonText( const QString& text );
 
 signals:
     void _pressed();
 
 protected:
-    QPushButton *_button;
+    QPushButton* _button;
 
 private slots:
     void _buttonPressed();
 };
 
+
 //
 // ====================================
 //
-class VComboBox : public VaporWidget {
+class VComboBox : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VComboBox(QWidget *parent, const std::string &labelText = "Label");
+    VComboBox(
+        QWidget* parent,
+        const std::string& labelText = "Label"
+    );
     int         GetCurrentIndex() const;
     std::string GetCurrentText() const;
-    void        AddOption(const std::string &option, int index = 0);
-    void        RemoveOption(int index);
-    void        SetIndex(int index);
+    void        AddOption( const std::string& option, int index=0 );
+    void        RemoveOption( int index );
+    void        SetIndex( int index );
     int         GetNumOfItems() const;
 
 private:
-    QComboBox *_combo;
+    QComboBox* _combo;
 
 private slots:
     void _userIndexChanged(int index);
@@ -281,19 +345,24 @@ signals:
     void _indexChanged(int index);
 };
 
+
 //
 // ====================================
 //
-class VCheckBox : public VaporWidget {
+class VCheckBox : public VaporLine
+{
     Q_OBJECT
 
 public:
-    VCheckBox(QWidget *parent, const std::string &labelText = "Label");
+    VCheckBox(
+        QWidget* parent,
+        const std::string& labelText = "Label"
+    );
     bool GetCheckState() const;
-    void SetCheckState(bool checkState);
+    void SetCheckState( bool checkState );
 
 private:
-    QCheckBox *_checkbox;
+    QCheckBox* _checkbox;
 
 private slots:
     void _userClickedCheckbox();
@@ -302,25 +371,32 @@ signals:
     void _checkboxClicked();
 };
 
+
 //
 // ====================================
 //
-class VFileSelector : public VPushButton {
+class VFileSelector : public VPushButton
+{
     Q_OBJECT
 
 public:
-    void        SetPath(const std::string &defaultPath);
-    void        SetPath(const QString &defaultPath);
-    void        SetFileFilter(const std::string &filter);
-    void        SetFileFilter(const QString &filter);
+    void SetPath( const std::string& defaultPath);
+    void SetPath( const QString& defaultPath);
+    void SetFileFilter( const std::string& filter );
+    void SetFileFilter( const QString& filter );
     std::string GetPath() const;
 
 protected:
-    VFileSelector(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString(),
-                  QFileDialog::FileMode fileMode = QFileDialog::FileMode::ExistingFile);
+    VFileSelector(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        const std::string& buttonText = "Select",
+        const std::string& filePath = QDir::homePath().toStdString(),
+        QFileDialog::FileMode fileMode = QFileDialog::FileMode::ExistingFile
+    );
 
     QFileDialog::FileMode _fileMode;
-    QFileDialog *         _fileDialog;
+    QFileDialog* _fileDialog;
 
 private slots:
     void _openFileDialog();
@@ -330,52 +406,77 @@ signals:
     void _pathChanged();
 
 private:
-    QLineEdit * _lineEdit;
-    std::string _filePath;
+    QLineEdit*   _lineEdit;
+    std::string  _filePath;
 
-    virtual bool _isFileOperable(const std::string &filePath) const = 0;
+    virtual bool _isFileOperable( const std::string& filePath ) const = 0;
 };
+
 
 //
 // ====================================
 //
-class VFileReader : public VFileSelector {
+class VFileReader : public VFileSelector
+{
     Q_OBJECT
 
 public:
-    VFileReader(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString());
+    VFileReader(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        const std::string& buttonText = "Select",
+        const std::string& filePath = QDir::homePath().toStdString()
+    );
 
 private:
-    virtual bool _isFileOperable(const std::string &filePath) const;
+    virtual bool _isFileOperable( const std::string& filePath ) const;
 };
+
 
 //
 // ====================================
 //
-class VFileWriter : public VFileSelector {
+class VFileWriter : public VFileSelector
+{
     Q_OBJECT
 
 public:
-    VFileWriter(QWidget *parent, const std::string &labelText = "Label", const std::string &buttonText = "Select", const std::string &filePath = QDir::homePath().toStdString());
+    VFileWriter(
+        QWidget* parent,
+        const std::string& labelText = "Label",
+        const std::string& buttonText = "Select",
+        const std::string& filePath = QDir::homePath().toStdString()
+    );
 
 private:
-    virtual bool _isFileOperable(const std::string &filePath) const;
+    virtual bool _isFileOperable( const std::string& filePath ) const;
 };
 
 //
 // ====================================
 //
-class VTabWidget : public QTabWidget {
+class VTabWidget : public QTabWidget
+{
     Q_OBJECT
 
 public:
-    VTabWidget(QWidget *parent, const std::string &firstTabName);
+    VTabWidget(
+        QWidget* parent,
+        const std::string& firstTabName
+    );
 
-    void AddTab(const std::string &tabName);
+    void AddTab(
+        const std::string& tabName
+    );
 
-    void DeleteTab(int index);
+    void DeleteTab(
+        int index
+    );
 
-    void AddWidget(QWidget *widget, int index = 0);
+    void AddWidget(
+        QWidget* widget,
+        int index = 0
+    );
 };
-
+*/
 #endif    // VAPORWIDGETS_H
