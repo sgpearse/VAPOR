@@ -65,7 +65,7 @@ VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int min, int m
 
     _layout->addWidget(_spinBox);
 
-    connect(_spinBox, SIGNAL(editingFinished()), this, SLOT(_validate()));
+    connect(_spinBox, SIGNAL(editingFinished()), this, SLOT(_validateAndEmit()));
 }
 
 void VSpinBox::Update(int value)

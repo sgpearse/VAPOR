@@ -9,6 +9,7 @@
 #include "RenderEventRouter.h"
 #include "VariablesWidget.h"
 #include "SliceSubtabs.h"
+#include "ParamsWidgets.h"
 
 QT_USE_NAMESPACE
 
@@ -41,6 +42,9 @@ public:
     //
     static string GetClassType() { return (VAPoR::SliceRenderer::GetClassType()); }
     string        GetType() const { return GetClassType(); }
+
+    QWidget * _testTab;
+    PSpinBox *_sb;
 
 protected:
     void           _updateTab();
