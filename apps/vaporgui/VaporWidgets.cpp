@@ -19,11 +19,18 @@
 #include <iostream>
 #include "vapor/VAssert.h"
 
+#define XMIN 0
+#define YMIN 1
+#define ZMIN 2
+#define XMAX 3
+#define YMAX 4
+#define ZMAX 5
+
 VaporWidget::VaporWidget(QWidget *parent) : QWidget(parent) {}
 
 void VaporWidget::_validateAndEmit(){};
 
-VaporLine::VaporLine(QWidget *parent, const std::string &labelText) : VaporWidget(parent)
+VLine::VLine(QWidget *parent, const std::string &labelText) : VaporWidget(parent)
 {
     _layout = new QHBoxLayout(this);
     _layout->setContentsMargins(0, 0, 0, 0);
@@ -39,11 +46,11 @@ VaporLine::VaporLine(QWidget *parent, const std::string &labelText) : VaporWidge
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 }
 
-void VaporLine::Update(const std::string &labelText) { SetLabelText(labelText); }
+void VLine::Update(const std::string &labelText) { SetLabelText(labelText); }
 
-void VaporLine::SetLabelText(const std::string &text) { _label->setText(QString::fromStdString(text)); }
+void VLine::SetLabelText(const std::string &text) { _label->setText(QString::fromStdString(text)); }
 
-VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int min, int max, int defaultValue) : VaporLine(parent, labelText), _min(min), _max(max), _value(defaultValue)
+VSpinBox::VSpinBox(QWidget *parent, const std::string &labelText, int min, int max, int defaultValue) : VLine(parent, labelText), _min(min), _max(max), _value(defaultValue)
 {
     _spinBox = new QSpinBox(this);
     SetMinimum(min);
@@ -73,7 +80,6 @@ void VSpinBox::_validateAndEmit()
     if (newValue != _value && newValue <= _max && newValue >= _min) {
         _value = newValue;
         emit _valueChanged();
-        std::cout << "VSpinBox::_validateAndEmit() " << _value << std::endl;
     }
 }
 
@@ -99,7 +105,7 @@ VDoubleSpinBox::VDoubleSpinBox(
         const std::string& labelText,
         double defaultValue
     ) :
-    VaporLine(parent, labelText),
+    VLine(parent, labelText),
     _value( defaultValue )
 {
     _spinBox = new QDoubleSpinBox( this );
@@ -236,7 +242,7 @@ void VRange::_respondMaxSlider()
 //
 // ====================================
 //
-VSlider::VSlider(QWidget *parent, const std::string &label, double min, double max, double value) : VaporLine(parent, label), _min(min), _max(max), _value(value)
+VSlider::VSlider(QWidget *parent, const std::string &label, double min, double max, double value) : VLine(parent, label), _min(min), _max(max), _value(value)
 {
     VAssert(_max > _min);
     _value = (_min + _max) / 2.0f;
@@ -288,8 +294,7 @@ void VSlider::Update(double val)
         double percent = (_value - _min) / (_max - _min) * 100.0f;
         _qslider->setValue(std::lround(percent));
         _qedit->setText(QString::number(_value, 'f', 3));
-    } else
-        std::cout << "VSlider value rejected " << val << std::endl;
+    }
 }
 
 void VSlider::GetValue(double &value) const { value = _value; }
@@ -340,107 +345,92 @@ void VSlider::_respondQLineEdit()
     emit _valueChanged();
 }
 
-/*
-
 //
 // ====================================
 //
 
-VGeometry::VGeometry(
-        QWidget* parent,
-        int dim,
-        const std::vector<double>& range,
-        const std::string& label
-) : QTabWidget( parent )
+VGeometry::VGeometry(QWidget *parent, const std::vector<double> &range, const std::vector<std::string> &label) : VaporWidget(parent)
 {
-    VAssert( dim == 2 || dim == 3 );
-    VAssert( range.size() == dim * 2 );
-    for( int i = 0; i < dim; i++ )
-        VAssert( range[ i ] < range[ i+3 ] );
+    _dim = range.size() / 2;
+    VAssert(_dim == 2 || _dim == 3);
 
-    QWidget* pageWidget = new QWidget();
-    QVBoxLayout* layout = new QVBoxLayout();
-    pageWidget->setLayout( layout );
+    for (int i = 0; i < _dim; i++) VAssert(range[i] < range[i + 3]);
 
-    _dim = dim;
-    _xrange = new VRange( pageWidget, range[0], range[3], "XMin", "XMax" );
-    _yrange = new VRange( pageWidget, range[1], range[4], "YMin", "YMax" );
-    if( _dim == 3 )
-        _zrange = new VRange( pageWidget, range[2], range[5], "ZMin", "ZMax" );
+    // QWidget* pageWidget = new QWidget();
+    _layout = new QVBoxLayout(this);
+    _layout->setContentsMargins(0, 0, 0, 0);
+    //    setLayout( layout );
+
+    _xrange = new VRange(this, range[XMIN], range[XMAX], label[XMIN], label[XMAX]);
+    _yrange = new VRange(this, range[YMIN], range[YMAX], label[YMIN], label[YMAX]);
+    if (_dim == 3)
+        _zrange = new VRange(this, range[ZMIN], range[ZMAX], label[ZMIN], label[ZMAX]);
     else    // Create anyway. Will be hidden though.
     {
-        _zrange = new VRange( pageWidget, 0.0f, 100.0f, "ZMin", "ZMax" );
+        _zrange = new VRange(this, 0.0f, 100.0f, "ZMin", "ZMax");
         _zrange->hide();
     }
 
-    connect( _xrange, SIGNAL( _rangeChanged() ), this, SLOT( _respondChanges() ) );
-    connect( _yrange, SIGNAL( _rangeChanged() ), this, SLOT( _respondChanges() ) );
-    connect( _zrange, SIGNAL( _rangeChanged() ), this, SLOT( _respondChanges() ) );
+    connect(_xrange, SIGNAL(_valueChanged()), this, SLOT(_respondChanges()));
+    connect(_yrange, SIGNAL(_valueChanged()), this, SLOT(_respondChanges()));
+    connect(_zrange, SIGNAL(_valueChanged()), this, SLOT(_respondChanges()));
 
     //_layout = new QVBoxLayout(this);
-    layout->addWidget( _xrange );
-    layout->addWidget( _yrange );
-    layout->addWidget( _zrange );
-    addTab( pageWidget, QString::fromStdString(label) );
+    _layout->addWidget(_xrange);
+    _layout->addWidget(_yrange);
+    _layout->addWidget(_zrange);
+    // addTab( pageWidget, QString::fromStdString(label) );
 }
 
 VGeometry::~VGeometry() {}
 
-void
-VGeometry::SetDimAndRange( int dim, const std::vector<double>& range )
+void VGeometry::SetRange(const std::vector<double> &range)
 {
-    VAssert( dim == 2 || dim == 3 );
-    VAssert( range.size() == dim * 2 );
-    for( int i = 0; i < dim; i++ )
-        VAssert( range[ i ] < range[ i+3 ] );
+    VAssert(range.size() == _dim * 2);
+    _dim = range.size() / 2;
+    VAssert(_dim == 2 || _dim == 3);
+
+    for (int i = 0; i < _dim; i++) VAssert(range[i] < range[i + 3]);
 
     // Adjust the appearance if necessary
-    if( _dim == 2 && dim == 3 )
+    if (_dim == 3)
         _zrange->show();
-    else if( _dim == 3 && dim == 2 )
+    else
         _zrange->hide();
-    _dim = dim;
 
-    _xrange->SetRange( range[0], range[3] );
-    _yrange->SetRange( range[1], range[4] );
-    if( _dim == 3 )
-        _zrange->SetRange( range[2], range[5] );
+    _xrange->SetRange(range[0], range[3]);
+    _yrange->SetRange(range[1], range[4]);
+    if (_dim == 3) _zrange->SetRange(range[2], range[5]);
 }
 
-void
-VGeometry::SetCurrentValues( const std::vector<double>& vals )
+void VGeometry::Update(const std::vector<double> &vals)
 {
-    VAssert( vals.size() == _dim * 2 );
-    for( int i = 0; i < _dim; i++ )
-        VAssert( vals[ i ] < vals[ i+3 ] );
+    if (vals.size() != _dim * 2) return;
+
+    for (int i = 0; i < _dim; i++) VAssert(vals[i] <= vals[i + 3]);
 
     // VRange widgets will only respond to values within their ranges
-    _xrange->SetCurrentValLow(  vals[0] );
-    _xrange->SetCurrentValHigh( vals[3] );
-    _yrange->SetCurrentValLow(  vals[1] );
-    _yrange->SetCurrentValHigh( vals[4] );
-    if( _dim == 3 )
-    {
-        _zrange->SetCurrentValLow(  vals[2] );
-        _zrange->SetCurrentValHigh( vals[5] );
+    _xrange->SetCurrentValLow(vals[XMIN]);
+    _xrange->SetCurrentValHigh(vals[XMAX]);
+    _yrange->SetCurrentValLow(vals[YMIN]);
+    _yrange->SetCurrentValHigh(vals[YMAX]);
+    if (_dim == 3) {
+        _zrange->SetCurrentValLow(vals[ZMIN]);
+        _zrange->SetCurrentValHigh(vals[ZMAX]);
     }
 }
 
-void
-VGeometry::GetCurrentValues( std::vector<double>& vals ) const
+void VGeometry::GetValue(std::vector<double> &vals) const
 {
-    vals.resize( _dim * 2, 0.0f );
-    _xrange->GetCurrentValRange( vals[0], vals[3] );
-    _yrange->GetCurrentValRange( vals[1], vals[4] );
-    if( _dim == 3 )
-        _zrange->GetCurrentValRange( vals[2], vals[5] );
+    vals.resize(_dim * 2, 0.0f);
+    _xrange->GetCurrentValRange(vals[XMIN], vals[XMAX]);
+    _yrange->GetCurrentValRange(vals[YMIN], vals[YMAX]);
+    if (_dim == 3) _zrange->GetCurrentValRange(vals[ZMIN], vals[ZMAX]);
 }
 
-void
-VGeometry::_respondChanges()
-{
-    emit _geometryChanged();
-}
+void VGeometry::_respondChanges() { emit _valueChanged(); }
+
+/*
 
 //
 // ====================================
@@ -450,7 +440,7 @@ VLineEdit::VLineEdit(
         const std::string& labelText,
         const std::string& editText
     ) :
-    VaporLine(parent, labelText)
+    VLine(parent, labelText)
 {
     _text = editText;
 
@@ -497,7 +487,7 @@ VPushButton::VPushButton(
         const std::string& labelText,
         const std::string& buttonText
     ) :
-    VaporLine(parent, labelText)
+    VLine(parent, labelText)
 {
     _button = new QPushButton( this );
     _layout->addWidget( _button );
@@ -526,7 +516,7 @@ VComboBox::VComboBox(
         QWidget *parent,
         const std::string& labelText
     ) :
-    VaporLine(parent, labelText)
+    VLine(parent, labelText)
 {
     _combo = new QComboBox(this);
     _layout->addWidget( _combo );
@@ -568,7 +558,7 @@ VCheckBox::VCheckBox(
         QWidget *parent,
         const std::string& labelText
     ) :
-    VaporLine(parent, labelText)
+    VLine(parent, labelText)
 {
     _checkbox = new QCheckBox( "", this );
     _layout->addWidget( _checkbox );

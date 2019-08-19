@@ -30,25 +30,34 @@ SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidge
     _testTab = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout;
 
-    _psb = new PSpinBox(_testTab, "testTag", "testDesc", "PSpinBox", 0, 100, 5);
+    _psb = new PSpinBox(_testTab, "testTag", "testDescription", "PSpinBox", 0, 100, 5);
     layout->addWidget(_psb);
-    _psb2 = new PSpinBox(_testTab, "testTag", "testDesc", "PSpinBox2", 0, 100, 5);
+
+    _psb2 = new PSpinBox(_testTab, "testTag", "testDescription", "PSpinBox2", 0, 100, 5);
     layout->addWidget(_psb2);
 
     _vsb = new VSpinBox(_testTab, "VSpinBox", 0, 100, 5);
     layout->addWidget(_vsb);
 
-    _psl = new PSlider(_testTab, "sliderTag", "sliderDesc", "PSlider1", 0, 100, 33);
+    _psl = new PSlider(_testTab, "sliderTag", "sliderDescription", "PSlider1", 0, 100, 33);
     layout->addWidget(_psl);
 
-    _psl2 = new PSlider(_testTab, "sliderTag", "sliderDesc", "PSlider2", 0, 100, 33);
+    _psl2 = new PSlider(_testTab, "sliderTag", "sliderDescription", "PSlider2", 0, 100, 33);
     layout->addWidget(_psl2);
 
-    VaporLine *line = new VaporLine(_testTab, "VaporLine");
+    VLine *line = new VLine(_testTab, "VLine");
     layout->addWidget(line);
 
-    _prange = new PRange(_testTab, "prangeTag", "prangeDesc", 0, 200, "PRangeMin", "PRangeMax");
+    _prange = new PRange(_testTab, "prangeTag", "prangeDescription", 0, 200, "PRangeMin", "PRangeMax");
     layout->addWidget(_prange);
+
+    QTabWidget *             tabWidget = new QTabWidget(this);
+    std::vector<double>      range = {0., 0., 0., 1000., 1000., 1000.};
+    std::vector<std::string> labels = {"X min", "X max", "Y min", "Y max", "Z min", "Z max"};
+    _pgeometry = new PGeometry(nullptr, "pgeometryTag", "pgeometryDescription", range, labels);
+    // layout->addWidget( _pgeometry );
+    tabWidget->addTab(_pgeometry, "Geometry");
+    layout->addWidget(tabWidget);
 
     _testTab->setLayout(layout);
     _testTab->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
@@ -141,6 +150,7 @@ void SliceEventRouter::_updateTab()
     _psl->Update(params);
     _psl2->Update(params);
     _prange->Update(params);
+    _pgeometry->Update(params);
 
     // The variable tab updates itself:
     //

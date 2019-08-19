@@ -18,6 +18,7 @@ class QDoubleSpinBox;
 #include <cmath>
 #include <QTabWidget>
 #include <QFileDialog>
+#include <QBoxLayout>
 
 #include "vapor/VAssert.h"
 
@@ -39,6 +40,9 @@ public:
     virtual void GetValue(std::string &value) const { VAssert(-1); }
     virtual void GetValue(std::vector<double> &value) const { VAssert(-1); }
 
+protected:
+    QBoxLayout *_layout;
+
 private slots:
     virtual void _validateAndEmit();
 
@@ -49,11 +53,11 @@ signals:
 //
 // ====================================
 //
-class VaporLine : public VaporWidget {
+class VLine : public VaporWidget {
     Q_OBJECT
 
 public:
-    VaporLine(QWidget *parent, const std::string &labelText);
+    VLine(QWidget *parent, const std::string &labelText);
 
     void Update(const std::string &labelText) override;
 
@@ -62,13 +66,13 @@ public:
 protected:
     QLabel *     _label;
     QSpacerItem *_spacer;
-    QHBoxLayout *_layout;
+    // QHBoxLayout* _layout;
 };
 
 //
 // ====================================
 //
-class VSpinBox : public VaporLine {
+class VSpinBox : public VLine {
     Q_OBJECT
 
 public:
@@ -109,7 +113,7 @@ signals:
 //   Thus this widget uses an internal variable to keep the actual value in float.
 // ====================================
 //
-class VSlider : public VaporLine {
+class VSlider : public VLine {
     Q_OBJECT
 
 public:
@@ -139,7 +143,7 @@ private:
 //
 // ====================================
 //
-class VDoubleSpinBox : public VaporLine
+class VDoubleSpinBox : public VLine
 {
     Q_OBJECT
 
@@ -173,7 +177,7 @@ private:
 //
 // ====================================
 //
-class VLineEdit : public VaporLine
+class VLineEdit : public VLine
 {
     Q_OBJECT
 
@@ -234,16 +238,14 @@ private slots:
     void _respondMaxSlider();
 
 private:
-    VSlider *    _minSlider, *_maxSlider;
-    QVBoxLayout *_layout;
+    VSlider *_minSlider, *_maxSlider;
+    // QVBoxLayout*    _layout;
 
     // In case _minSlider is changed, adjust _maxSlider if necessary.
     void _adjustMaxToMin();
     // In case _maxSlider is changed, adjust _minSlider if necessary.
     void _adjustMinToMax();
 };
-
-/*
 
 //
 // ====================================
@@ -252,49 +254,45 @@ private:
 // Note: this class is never supposed to be used beyond 2D and 3D cases.
 // ====================================
 //
-class VGeometry : public QTabWidget
-{
+class VGeometry : public VaporWidget {
     Q_OBJECT
 
 public:
     // Constructor for 2D or 3D geometries.
     //   Four floating point values imply a 2D geometry, while Six floating point
     //   values imply a 3D geometry. All other numbers are illegal.
-    VGeometry(
-        QWidget* parent,
-        int dim,
-        const std::vector<float>& range,
-        const std::string& label = "Geometry"
-    );
+    VGeometry(QWidget *parent, const std::vector<double> &extents, const std::vector<std::string> &labels);
 
     ~VGeometry();
 
-    // Adjust the dimension and/or value ranges through this function.
+    // Adjust the value ranges through this function.
     //   Argument range must contain 4 or 6 values organized in the following order:
-    //   xmin, xmax, ymin, ymax, (zmin, zmax).
-    void  SetDimAndRange( int dim, const std::vector<float>& range );
+    //   xmin, ymin, (zmin), xmax, ymax, (zmax)
+    void SetRange(const std::vector<double> &range);
     // The number of incoming values MUST match the current dimensionality.
     //   I.e., 4 values for 2D widgets, and 6 values for 3D widgets.
-    void  SetCurrentValues( const std::vector<float>& vals );
-    void  GetCurrentValues( std::vector<float>& vals ) const;
+    void Update(const std::vector<double> &vals) override;
+    void GetValue(std::vector<double> &vals) const override;
 
 signals:
-    void  _geometryChanged();
+    void _valueChanged();
 
 private slots:
-    void  _respondChanges();
+    void _respondChanges();
 
 private:
-    int          _dim;
-    VRange      *_xrange, *_yrange, *_zrange;
-    //QVBoxLayout* _layout;
-    //QWidget*     _pageWidget;
+    int     _dim;
+    VRange *_xrange, *_yrange, *_zrange;
+    // QVBoxLayout* _layout;
+    // QWidget*     _pageWidget;
 };
+
+/*
 
 //
 // ====================================
 //
-class VPushButton : public VaporLine
+class VPushButton : public VLine
 {
     Q_OBJECT
 
@@ -322,7 +320,7 @@ private slots:
 //
 // ====================================
 //
-class VComboBox : public VaporLine
+class VComboBox : public VLine
 {
     Q_OBJECT
 
@@ -352,7 +350,7 @@ signals:
 //
 // ====================================
 //
-class VCheckBox : public VaporLine
+class VCheckBox : public VLine
 {
     Q_OBJECT
 
