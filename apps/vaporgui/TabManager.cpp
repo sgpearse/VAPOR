@@ -66,7 +66,8 @@ TabManager::TabManager(QWidget *parent, ControlExec *ce) : QTabWidget(parent)
     setElideMode(Qt::ElideNone);
 
     _createAllDefaultTabs();
-    this->tabBar()->setTabTextColor(3, QColor::fromRgb(0, 0, 255));
+    // this->tabBar()->setTabTextColor(3, QColor::fromRgb(0, 0, 255));
+    this->setTabEnabled(3, false);
 
     show();
 
