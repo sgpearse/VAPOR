@@ -26,66 +26,66 @@ class VaporWidget : public QWidget {
     Q_OBJECT
 
 public:
-    VaporWidget(QWidget *parent = 0);
+    VaporWidget(QWidget *parent = nullptr);
 
-    // These should only be called on derived classes
-    virtual void Update(int value) { VAssert(-1); }
-    virtual void Update(double value) { VAssert(-1); }
-    virtual void Update(const std::string &value) { VAssert(-1); }
-    virtual void Update(const std::vector<double> &value) { VAssert(-1); }
-
-    // These should only be called on derived classes too
-    virtual void GetValue(int &value) const { VAssert(-1); }
-    virtual void GetValue(double &value) const { VAssert(-1); }
-    virtual void GetValue(std::string &value) const { VAssert(-1); }
-    virtual void GetValue(std::vector<double> &value) const { VAssert(-1); }
+    void addToolTip(const std::string &toolTip);
 
 protected:
     QBoxLayout *_layout;
-
-private slots:
-    virtual void _validateAndEmit();
-
-signals:
-    void _valueChanged();
 };
 
 //
 // ====================================
 //
-class VLine : public VaporWidget {
+/*class VLabel : public VaporWidget
+{
     Q_OBJECT
 
 public:
-    VLine(QWidget *parent, const std::string &labelText);
+    VLabel(
+        QWidget* parent = nullptr,
+        const std::string& labelText = "VLabel"
+    );
+    VLabel(
+        const std::string& labelText = "VLabel"
+    );
 
-    void Update(const std::string &labelText) override;
-
-    void SetLabelText(const std::string &text);
+    void SetLabelText( const std::string& text );
 
 protected:
-    QLabel *     _label;
-    QSpacerItem *_spacer;
-    // QHBoxLayout* _layout;
-};
+    QLabel*      _label;
+    QSpacerItem* _spacer;
+};*/
 
 //
 // ====================================
 //
-class VSpinBox : public VLine {
+/*class VSpinBox : public VLabel
+{
     Q_OBJECT
 
 public:
-    VSpinBox(QWidget *parent, const std::string &labelText = "Label", int min = 0, int max = 100, int defaultValue = 0);
+    VSpinBox(
+        QWidget* parent = nullptr,
+        const std::string& labelText = "VSpinBox",
+        int min = 0,
+        int max = 100,
+        int defaultValue = 0
+    );
+    VSpinBox(
+        const std::string& labelText = "VSpinBox",
+        int min = 0,
+        int max = 100,
+        int defaultValue = 0
+    );
 
-    void Update(int value) override;
-    void GetValue(int &value) const override;
+    void SetValue( int value );
+    int  GetValue() const;
 
-    void SetMaximum(int maximum);
-    void SetMinimum(int minimum);
+    void SetRange( int minimum, int maximum );
 
 protected:
-    QSpinBox *_spinBox;
+    QSpinBox* _spinBox;
 
 private:
     int _min;
@@ -93,11 +93,11 @@ private:
     int _value;
 
 protected slots:
-    void _validateAndEmit() override;
+    void _validateAndEmit();
 
 signals:
-    void _valueChanged();
-};
+    void valueChanged();
+};*/
 
 //
 // ====================================
@@ -113,37 +113,50 @@ signals:
 //   Thus this widget uses an internal variable to keep the actual value in float.
 // ====================================
 //
-class VSlider : public VLine {
+/*class VSlider : public VLabel
+{
     Q_OBJECT
 
 public:
-    VSlider(QWidget *parent, const std::string &label, double min, double max, double value);
+    VSlider(
+        QWidget* parent = nullptr,
+        const std::string& label = "VSlider",
+        double min   = 0,
+        double max   = 100,
+        double value = 0
+    );
+    VSlider(
+        const std::string& label = "VSlider",
+        double min   = 0,
+        double max   = 100,
+        double value = 0
+    );
     ~VSlider();
 
-    void Update(double val) override;
-    void GetValue(double &value) const override;
+    void SetValue( double val );
+    double GetValue() const;
 
-    void SetRange(double min, double max);
+    void SetExtents( double min, double max );
 
 signals:
-    void _valueChanged();
+    void  valueChanged();
 
 private slots:
-    void _respondQSliderReleased();    // emit signal
-    void _respondQSliderMoved(int);    // sync qSlider and qLineEdit
-    void _respondQLineEdit();          // emit signal
+    void  _respondQSliderReleased();    // emit signal
+    void  _respondQSliderMoved(int);    // sync qSlider and qLineEdit
+    void  _respondQLineEdit();          // emit signal
 
 private:
-    double     _min, _max, _value;
-    QSlider *  _qslider;
-    QLineEdit *_qedit;
-};
+    double      _min, _max, _value;
+    QSlider*    _qslider;
+    QLineEdit*  _qedit;
+};*/
 
 /*
 //
 // ====================================
 //
-class VDoubleSpinBox : public VLine
+class VDoubleSpinBox : public VLabel
 {
     Q_OBJECT
 
@@ -177,7 +190,7 @@ private:
 //
 // ====================================
 //
-class VLineEdit : public VLine
+class VLineEdit : public VLabel
 {
     Q_OBJECT
 
@@ -214,38 +227,43 @@ private:
 // representing the min and max values of a range.
 // ====================================
 //
-class VRange : public VaporWidget {
+/*class VRange : public VaporWidget
+{
     Q_OBJECT
 
 public:
-    VRange(QWidget *parent, double min, double max, const std::string &minLabel = "Min", const std::string &maxLabel = "Max");
+    VRange( QWidget* parent = nullptr,
+            double min = 0.0,
+            double max = 1.0,
+            const std::string& minLabel = "Min",
+            const std::string& maxLabel = "Max"  );
+    VRange( double min = 0.0,
+            double max = 1.0,
+            const std::string& minLabel = "Min",
+            const std::string& maxLabel = "Max"  );
     ~VRange();
 
-    void Update(const std::vector<double> &values) override;
-    void GetValue(std::vector<double> &values) const override;
+    void  SetSelection( double  rangeLow, double  rangeHigh );
+    void  GetSelection( double& rangeLow, double& rangeHigh ) const;
 
-    void GetCurrentValRange(double &low, double &high) const;
-
-    void SetRange(double min, double max);
-    void SetCurrentValLow(double low);
-    void SetCurrentValHigh(double high);
+    void  SetExtents( double extentsLow, double extentsHigh );
 
 signals:
-    void _valueChanged();
+    void  valueChanged();
 
 private slots:
-    void _respondMinSlider();
-    void _respondMaxSlider();
+    void  _respondMinSlider();
+    void  _respondMaxSlider();
 
 private:
-    VSlider *_minSlider, *_maxSlider;
-    // QVBoxLayout*    _layout;
+    VSlider        *_minSlider, *_maxSlider;
+    //QVBoxLayout*    _layout;
 
     // In case _minSlider is changed, adjust _maxSlider if necessary.
-    void _adjustMaxToMin();
+    void  _adjustMaxToMin();
     // In case _maxSlider is changed, adjust _minSlider if necessary.
-    void _adjustMinToMax();
-};
+    void  _adjustMinToMax();
+};*/
 
 //
 // ====================================
@@ -254,45 +272,52 @@ private:
 // Note: this class is never supposed to be used beyond 2D and 3D cases.
 // ====================================
 //
-class VGeometry : public VaporWidget {
+/*lass VGeometry : public VaporWidget
+{
     Q_OBJECT
 
 public:
     // Constructor for 2D or 3D geometries.
     //   Four floating point values imply a 2D geometry, while Six floating point
     //   values imply a 3D geometry. All other numbers are illegal.
-    VGeometry(QWidget *parent, const std::vector<double> &extents, const std::vector<std::string> &labels);
+    VGeometry(
+        QWidget* parent,
+        const std::vector<double>& extents,
+        const std::vector<std::string>& labels
+    );
+    VGeometry(
+        const std::vector<double>& extents,
+        const std::vector<std::string>& labels
+    );
 
     ~VGeometry();
 
     // Adjust the value ranges through this function.
     //   Argument range must contain 4 or 6 values organized in the following order:
     //   xmin, ymin, (zmin), xmax, ymax, (zmax)
-    void SetRange(const std::vector<double> &range);
+    void  SetRange( const std::vector<double>& range );
     // The number of incoming values MUST match the current dimensionality.
     //   I.e., 4 values for 2D widgets, and 6 values for 3D widgets.
-    void Update(const std::vector<double> &vals) override;
-    void GetValue(std::vector<double> &vals) const override;
+    void  SetGeometry( const std::vector<double>& vals );
+    void  GetGeometry( std::vector<double>& vals ) const;
 
 signals:
-    void _valueChanged();
+    void  valueChanged();
 
 private slots:
-    void _respondChanges();
+    void  _respondChanges();
 
 private:
-    int     _dim;
-    VRange *_xrange, *_yrange, *_zrange;
-    // QVBoxLayout* _layout;
-    // QWidget*     _pageWidget;
-};
+    int          _dim;
+    VRange      *_xrange, *_yrange, *_zrange;
+};*/
 
 /*
 
 //
 // ====================================
 //
-class VPushButton : public VLine
+class VPushButton : public VLabel
 {
     Q_OBJECT
 
@@ -320,7 +345,7 @@ private slots:
 //
 // ====================================
 //
-class VComboBox : public VLine
+class VComboBox : public VLabel
 {
     Q_OBJECT
 
@@ -350,7 +375,7 @@ signals:
 //
 // ====================================
 //
-class VCheckBox : public VLine
+class VCheckBox : public VLabel
 {
     Q_OBJECT
 

@@ -5,8 +5,10 @@
 
 #include <QWidget>
 
-class VaporWidget;
 class VSpinBox;
+class VSlider;
+class VRange;
+class VGeometry;
 
 class ParamsWidget : public QWidget {
     Q_OBJECT
@@ -14,26 +16,17 @@ class ParamsWidget : public QWidget {
 public:
     virtual void Update(VAPoR::ParamsBase *params) = 0;
 
-    virtual void GetValue(int &value) const;
-    virtual void GetValue(double &value) const;
-    virtual void GetValue(std::string &value) const;
-    virtual void GetValue(std::vector<double> &value) const;
-
 protected:
     ParamsWidget(QWidget *parent, const std::string &tag, const std::string &description);
 
     ~ParamsWidget(){};
 
-    VAPoR::ParamsBase *_params = nullptr;
-    VaporWidget *      _vaporWidget;
+    VAPoR::ParamsBase *_params;
     std::string        _tag;
     std::string        _description;
 
 protected slots:
-    virtual void _updateParams(){};
-
-signals:
-    void _valueChanged();
+    virtual void _updateParams() = 0;
 };
 
 class PSpinBox : public ParamsWidget {
@@ -42,15 +35,15 @@ class PSpinBox : public ParamsWidget {
 public:
     PSpinBox(QWidget *parent, const std::string &tag, const std::string &description, const std::string &label, int min = 0, int max = 100, int val = 0);
 
-    void Update(VAPoR::ParamsBase *params) override;
+    virtual void Update(VAPoR::ParamsBase *params) override;
 
-    void GetValue(int &value) const override;
+    int GetValue() const;
 
 protected slots:
     void _updateParams() override;
 
-signals:
-    void _valueChanged();
+private:
+    VSpinBox *_vSpinBox;
 };
 
 class PSlider : public ParamsWidget {
@@ -61,47 +54,13 @@ public:
 
     void Update(VAPoR::ParamsBase *params) override;
 
-    void GetValue(double &value) const override;
+    double GetValue() const;
 
 protected slots:
     void _updateParams() override;
 
-signals:
-    void _valueChanged();
-};
-
-class PRange : public ParamsWidget {
-    Q_OBJECT
-
-public:
-    PRange(QWidget *parent, const std::string &tag, const std::string &description, double min, double max, const std::string &minLabel = "Min", const std::string &maxLabel = "Max");
-
-    void Update(VAPoR::ParamsBase *params) override;
-
-    void GetValue(std::vector<double> &values) const override;
-
-protected slots:
-    void _updateParams() override;
-
-signals:
-    void _valueChanged();
-};
-
-class PGeometry : public ParamsWidget {
-    Q_OBJECT
-
-public:
-    PGeometry(QWidget *parent, const std::string &tag, const std::string &description, std::vector<double> &range, std::vector<std::string> &labels);
-
-    void Update(VAPoR::ParamsBase *params) override;
-
-    void GetValue(std::vector<double> &values) const override;
-
-protected slots:
-    void _updateParams() override;
-
-signals:
-    void _valueChanged();
+private:
+    VSlider *_vSlider;
 };
 
 #endif

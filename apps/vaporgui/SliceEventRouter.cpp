@@ -16,7 +16,11 @@
 #include "SliceEventRouter.h"
 #include "EventRouter.h"
 #include "ParamsWidgets.h"
-#include "VaporWidgets.h"
+#include "VaporWidget.h"
+#include "VLabel.h"
+#include "VSpinBox.h"
+#include "VRange.h"
+#include "VGeometry.h"
 
 using namespace VAPoR;
 
@@ -36,7 +40,9 @@ SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidge
     _psb2 = new PSpinBox(_testTab, "testTag", "testDescription", "PSpinBox2", 0, 100, 5);
     layout->addWidget(_psb2);
 
-    _vsb = new VSpinBox(_testTab, "VSpinBox", 0, 100, 5);
+    _vsb = new VSpinBox(
+        //_testTab,
+        "VSpinBox", 0, 100, 5);
     layout->addWidget(_vsb);
 
     _psl = new PSlider(_testTab, "sliderTag", "sliderDescription", "PSlider1", 0, 100, 33);
@@ -45,18 +51,19 @@ SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidge
     _psl2 = new PSlider(_testTab, "sliderTag", "sliderDescription", "PSlider2", 0, 100, 33);
     layout->addWidget(_psl2);
 
-    VLine *line = new VLine(_testTab, "VLine");
-    layout->addWidget(line);
+    VLabel *label = new VLabel(_testTab, "VLabel");
+    layout->addWidget(label);
 
-    _prange = new PRange(_testTab, "prangeTag", "prangeDescription", 0, 200, "PRangeMin", "PRangeMax");
-    layout->addWidget(_prange);
+    _vrange = new VRange(_testTab, 0, 200, "VRangeMin", "VRangeMax");
+    layout->addWidget(_vrange);
 
-    QTabWidget *             tabWidget = new QTabWidget(this);
+    QTabWidget *tabWidget = new QTabWidget(this);
+    tabWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     std::vector<double>      range = {0., 0., 0., 1000., 1000., 1000.};
-    std::vector<std::string> labels = {"X min", "X max", "Y min", "Y max", "Z min", "Z max"};
-    _pgeometry = new PGeometry(nullptr, "pgeometryTag", "pgeometryDescription", range, labels);
+    std::vector<std::string> labels = {"X min", "Y min", "Z min", "X max", "Y max", "Z max"};
+    _vgeometry = new VGeometry(nullptr, range, labels);
     // layout->addWidget( _pgeometry );
-    tabWidget->addTab(_pgeometry, "Geometry");
+    tabWidget->addTab(_vgeometry, "Geometry");
     layout->addWidget(tabWidget);
 
     _testTab->setLayout(layout);
@@ -149,8 +156,6 @@ void SliceEventRouter::_updateTab()
     _psb2->Update(params);
     _psl->Update(params);
     _psl2->Update(params);
-    _prange->Update(params);
-    _pgeometry->Update(params);
 
     // The variable tab updates itself:
     //
