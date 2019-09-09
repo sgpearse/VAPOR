@@ -9,7 +9,9 @@
 #include "RenderEventRouter.h"
 #include "VariablesWidget.h"
 #include "SliceSubtabs.h"
-#include "ParamsWidgets.h"
+#include "ParamsWidget.h"
+#include "PSpinBox.h"
+#include "PSlider.h"
 
 QT_USE_NAMESPACE
 

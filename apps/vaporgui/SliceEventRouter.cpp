@@ -15,7 +15,7 @@
 #include "VariablesWidget.h"
 #include "SliceEventRouter.h"
 #include "EventRouter.h"
-#include "ParamsWidgets.h"
+#include "ParamsWidget.h"
 #include "VaporWidget.h"
 #include "VLabel.h"
 #include "VSpinBox.h"
@@ -35,6 +35,8 @@ SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidge
     QVBoxLayout *layout = new QVBoxLayout;
 
     _psb = new PSpinBox(_testTab, "testTag", "testDescription", "PSpinBox", 0, 100, 5);
+    std::string toolTip = "test tool tip";
+    _psb->SetToolTip(toolTip);
     layout->addWidget(_psb);
 
     _psb2 = new PSpinBox(_testTab, "testTag", "testDescription", "PSpinBox2", 0, 100, 5);
