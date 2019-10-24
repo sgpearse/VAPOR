@@ -18,12 +18,12 @@
 //! The parameter tag that it is linked to is passed in the constructor and the
 //! relevant params node is set in the update method.
 
-class ParamsWidget : public QWidget {
+class ParamsWidgetOld : public QWidget {
     Q_OBJECT
 
 public:
     //! \param[in] label will be set to tag by default
-    ParamsWidget(const std::string &tag, const std::string &label = "");
+    ParamsWidgetOld(const std::string &tag, const std::string &label = "");
     virtual void Update(VAPoR::ParamsBase *p) = 0;
 
 protected:
@@ -33,7 +33,7 @@ protected:
     QSpacerItem *      _spacer;
 };
 
-class ParamsWidgetCheckbox : public ParamsWidget {
+class ParamsWidgetCheckbox : public ParamsWidgetOld {
     Q_OBJECT
 
     QCheckBox *_checkBox = nullptr;
@@ -46,7 +46,7 @@ private slots:
     void checkbox_clicked(bool checked);
 };
 
-class ParamsWidgetNumber : public ParamsWidget {
+class ParamsWidgetNumber : public ParamsWidgetOld {
     Q_OBJECT
 
     QLineEdit *_lineEdit = nullptr;
@@ -61,7 +61,7 @@ private slots:
     void valueChangedSlot();
 };
 
-class ParamsWidgetFloat : public ParamsWidget {
+class ParamsWidgetFloat : public ParamsWidgetOld {
     Q_OBJECT
 
     QLineEdit *_lineEdit = nullptr;
@@ -76,7 +76,7 @@ private slots:
     void valueChangedSlot();
 };
 
-class ParamsWidgetDropdown : public ParamsWidget {
+class ParamsWidgetDropdown : public ParamsWidgetOld {
     Q_OBJECT
 
     QComboBox *      _box = nullptr;
@@ -95,7 +95,7 @@ private slots:
 };
 
 class QColorWidget;
-class ParamsWidgetColor : public ParamsWidget {
+class ParamsWidgetColor : public ParamsWidgetOld {
     Q_OBJECT
 
     QColorWidget *_color = nullptr;
@@ -111,7 +111,7 @@ private slots:
     void colorChanged(QColor color);
 };
 
-class ParamsWidgetFile : public ParamsWidget {
+class ParamsWidgetFile : public ParamsWidgetOld {
     Q_OBJECT
 
     QPushButton *_button = nullptr;
@@ -155,11 +155,11 @@ protected:
 class ParamsWidgetTabGroup : public QTabWidget {
     Q_OBJECT
 
-    QWidget *                   _tab() const;
-    std::vector<ParamsWidget *> _widgets;
+    QWidget *                      _tab() const;
+    std::vector<ParamsWidgetOld *> _widgets;
 
 public:
     ParamsWidgetTabGroup(const std::string &title);
     void Update(VAPoR::ParamsBase *p);
-    void Add(ParamsWidget *widget);
+    void Add(ParamsWidgetOld *widget);
 };
