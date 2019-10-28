@@ -11,7 +11,7 @@ PFileSelector::PFileSelector(const std::string &tag, const std::string &label) :
     connect(_button, SIGNAL(clicked()), this, SLOT(buttonClicked()));
 }
 
-void PFileSelector::update() const { _pathTexbox->setText(QString::fromStdString(getParams()->GetValueString(GetTag(), "<empty>"))); }
+void PFileSelector::updateGUI() const { _pathTexbox->setText(QString::fromStdString(getParams()->GetValueString(GetTag(), "<empty>"))); }
 
 PFileSelector *PFileSelector::SetFileTypeFilter(const std::string &filter)
 {
