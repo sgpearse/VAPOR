@@ -42,6 +42,16 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     _vle = new VLineEdit2("lineEidt");
     layout()->addWidget(new VLineItem("LineEdit", _vle));
     connect(_vle, SIGNAL(ValueChanged(std::string)), this, SLOT(_vleChanged(std::string)));
+
+    _vs = new VSlider2(-10.0, 15.0);
+    layout()->addWidget(new VLineItem("Slider", _vs));
+    connect(_vs, SIGNAL(ValueChangedIntermediate(double)), this, SLOT(_vsChangedIntermediate(double)));
+    connect(_vs, SIGNAL(ValueChanged(double)), this, SLOT(_vsChanged(double)));
+
+    _vse = new VSliderEdit(-10.0, 15.0, 5.0);
+    layout()->addWidget(new VLineItem("SliderEdit", _vse));
+    ;
+    connect(_vse, SIGNAL(ValueChanged(double)), this, SLOT(_vseChanged(double)));
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
