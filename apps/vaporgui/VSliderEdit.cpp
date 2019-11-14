@@ -10,15 +10,17 @@ VSliderEdit::VSliderEdit(double min, double max, double value) : VContainer(this
     _lineEdit = new VLineEdit2();
     _slider = new VSlider2();
 
-    SetValue(value);
     SetRange(min, max);
+    SetValue(value);
 
-    layout()->addWidget(_lineEdit);
     layout()->addWidget(_slider);
+    layout()->addWidget(_lineEdit);
 
     connect(_lineEdit, SIGNAL(ValueChanged(const std::string &)), this, SLOT(emitLineEditValueChanged(const std::string &)));
 
     connect(_slider, SIGNAL(ValueChanged(double)), this, SLOT(emitSliderValueChanged(double)));
+
+    connect(_slider, SIGNAL(ValueChangedIntermediate(double)), this, SLOT(emitSliderValueChangedIntermediate(double)));
 }
 
 double VSliderEdit::GetValue() const { return _value; }
@@ -72,7 +74,10 @@ void VSliderEdit::emitSliderValueChanged(double value)
 {
     SetValue(value);
     emit ValueChanged(_value);
-    std::cout << "void VSliderEdit::emitSliderValueChanged( double value ) {}" << value << std::endl;
 }
 
-void VSliderEdit::emitSliderValueChangedIntermediate() {}
+void VSliderEdit::emitSliderValueChangedIntermediate(double value)
+{
+    std::cout << "esvci " << value << " " << std::endl;
+    emit ValueChangedIntermediate(value);
+}
