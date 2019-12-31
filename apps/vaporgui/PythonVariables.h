@@ -152,6 +152,7 @@ public:
     void   Update(int type, std::vector<string> optionNames, std::vector<int> categoryItems = std::vector<int>());
     string GetItemName() const;
     string GetOptionName() const;
+    int    GetType() const;
 
 private:
     void _connectWidgets();
