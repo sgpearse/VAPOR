@@ -246,7 +246,6 @@ void MainForm::_initMembers()
 //
 MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : QMainWindow(parent)
 {
-    int unused;
     _initMembers();
 
     _App = app;
