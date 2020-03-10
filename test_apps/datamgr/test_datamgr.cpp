@@ -152,7 +152,7 @@ void test_node_iterator(const Grid *g, vector<double> minu, vector<double> maxu)
 
 void test_get_value(Grid *g)
 {
-    cout << "Get Value Test ------>" << endl;
+    cout << "Get Value Test ----->" << endl;
 
     g->SetInterpolationOrder(1);
 
@@ -268,9 +268,7 @@ void process(FILE *fp, DataMgr &datamgr, string vname, int loop, int ts)
     g->GetUserExtents(minu, maxu);
     test_node_iterator(g, minu, maxu);
 
-    // if (opt.tgetvalue) {
-    test_get_value(g);
-    //}
+    if (opt.tgetvalue) { test_get_value(g); }
 
     vector<double> rvec;
     datamgr.GetDataRange(ts, vname, opt.level, opt.lod, rvec);
