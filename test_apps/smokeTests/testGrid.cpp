@@ -43,16 +43,17 @@ struct opt_t {
 OptionParser::OptDescRec_T set_opts[] = {{"grids", 1, "Regular:Stretched:Layered:Curvilinear", "Colon delimited list of grids to test"},
                                          {"arrangements", 1, "Constant:Ramp:Triangle",
                                           "Colon delimited list of "
-                                          "arrantements for data to be written to specified grids during testing"},
+                                          "data arrangements to test synthetic grids with"},
                                          {"dims", 1, "8:8:8",
                                           "Data volume dimensions expressed in "
                                           "grid points (NX:NY:NZ)"},
                                          {"bs", 1, "64:64:64", "Internal storage blocking factor expressed in grid points (NX:NY:NZ)"},
                                          {"extents", 1, "0:0:0:1:1:1",
                                           "Colon delimited 6-element vector "
-                                          "specifying domain extents in user coordinates (X0:Y0:Z0:X1:Y1:Z1)"},
-                                         {"minValue", 1, "0", "The minimum data value to be assigned to cells in grid instances."},
-                                         {"maxValue", 1, "1", "The maximum data value to be assigned to cells in grid instances."},
+                                          "specifying domain extents of synthetic grids in user coordinates "
+                                          "(X0:Y0:Z0:X1:Y1:Z1)"},
+                                         {"minValue", 1, "0", "The minimum data value to be assigned to cells in synthetic grids"},
+                                         {"maxValue", 1, "1", "The maximum data value to be assigned to cells in synthetic grids"},
                                          {"help", 0, "", "Print this message and exit"},
                                          {nullptr}};
 
@@ -155,6 +156,4 @@ int main(int argc, char **argv)
     cout << "Elapsed time: " << t1 - t0 << endl;
 
     DeleteHeap();
-    //    for (size_t i=0; i<Heap.size(); i++)
-    //        delete [] Heap[i];
 }

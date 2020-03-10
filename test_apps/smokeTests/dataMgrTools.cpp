@@ -3,7 +3,7 @@
 #include "gridTools.h"
 #include "dataMgrTools.h"
 
-void PrintDimensions(VAPoR::DataMgr &dataMgr)
+void PrintDimensions(const VAPoR::DataMgr &dataMgr)
 {
     vector<string> dimnames;
     dimnames = dataMgr.GetDimensionNames();
@@ -17,7 +17,7 @@ void PrintDimensions(VAPoR::DataMgr &dataMgr)
     cout << endl;
 }
 
-void PrintMeshes(VAPoR::DataMgr &dataMgr, bool verbose)
+void PrintMeshes(const VAPoR::DataMgr &dataMgr, bool verbose)
 {
     vector<string> meshnames;
     cout << "Meshes:" << endl;
@@ -33,7 +33,7 @@ void PrintMeshes(VAPoR::DataMgr &dataMgr, bool verbose)
     cout << endl;
 }
 
-void PrintCoordVariables(VAPoR::DataMgr &dataMgr)
+void PrintCoordVariables(const VAPoR::DataMgr &dataMgr)
 {
     cout << "Coordinate Variables:" << endl;
     std::vector<std::string> coordVars = dataMgr.GetCoordVarNames();
@@ -41,28 +41,22 @@ void PrintCoordVariables(VAPoR::DataMgr &dataMgr)
     cout << endl;
 }
 
-void PrintTimeCoordinates(VAPoR::DataMgr &dataMgr)
+void PrintTimeCoordinates(const VAPoR::DataMgr &dataMgr)
 {
     std::vector<double> timeCoords = dataMgr.GetTimeCoordinates();
     cout << "Time Coordinates:" << endl;
+    auto oldPrecision = std::cout.precision(10);
     for (int i = 0; i < timeCoords.size(); i++) { cout << "    " << timeCoords[i] << endl; }
+    std::cout.precision(oldPrecision);
     cout << endl;
 }
 
-void PrintCompressionInfo(VAPoR::DataMgr &dataMgr, std::string &varname)
+void PrintCompressionInfo(const VAPoR::DataMgr &dataMgr, const std::string &varname)
 {
-    /*std::vector<size_t> refLevels = dataMgr.GetNumRefLevels( varname );
-    cout << "Compression levels for " << varname << endl;
-    std::stringstream ss;
-    for( size_t i=0; i<refLevels.size(); i++) {
-        if (i != 0)
-            ss << " ";
-        ss << refLevels[i];
-    }
-    std::string s = ss.str();*/
+    cout << "Compression Info for variable " << varname << ":" << endl;
+
     cout << "    Refinement Levels:  " << dataMgr.GetNumRefLevels(varname) << endl;
 
-    // ss.str(std::string()); // clear the stringstream
     std::stringstream   ss;
     std::vector<size_t> cRatios = dataMgr.GetCRatios(varname);
     for (size_t i = 0; i < cRatios.size(); i++) {
@@ -73,7 +67,7 @@ void PrintCompressionInfo(VAPoR::DataMgr &dataMgr, std::string &varname)
     cout << "    Compression Ratios: " << s << endl << endl;
 }
 
-void PrintVariables(VAPoR::DataMgr &dataMgr, bool verbose, bool testVars)
+void PrintVariables(const VAPoR::DataMgr &dataMgr, bool verbose, bool testVars)
 {
     vector<string> vars;
 
@@ -83,7 +77,7 @@ void PrintVariables(VAPoR::DataMgr &dataMgr, bool verbose, bool testVars)
         cout << d << "D variables: " << endl;
         ;
         for (int i = 0; i < vars.size(); i++) {
-            cout << "  " << vars[i] << endl;
+            cout << "    " << vars[i] << endl;
             if (verbose) {
                 VAPoR::DC::DataVar datavar;
                 dataMgr.GetDataVarInfo(vars[i], datavar);
@@ -129,12 +123,13 @@ void TestVariables(VAPoR::DataMgr &dataMgr)
             std::string s = ss.str();
             cout << "    Dimension Lengths:  " << s << endl;
             cout << "    Topology Dimension: " << dataMgr.GetVarTopologyDim(varName) << endl;
+            cout << endl;
             PrintStats(rms, numMissingValues, disagreements);
         }
     }
 }
 
-int TestWRF(std::string &fileType, size_t memsize, size_t nthreads, std::vector<std::string> &files, std::vector<std::string> &options)
+int TestDataMgr(const std::string &fileType, size_t memsize, size_t nthreads, const std::vector<std::string> &files, const std::vector<std::string> &options)
 {
     VAPoR::DataMgr dataMgr(fileType, memsize, nthreads);
     int            rc = dataMgr.Initialize(files, options);
