@@ -16,8 +16,8 @@ void MakeRamp(VAPoR::Grid *grid, float minVal, float maxVal, size_t axis);
 void CompareIndexToCoords(VAPoR::Grid *grid,
                           double &     rms,                 // Root Mean Square error
                           size_t &     numMissingValues,    // Counter for receiving MissingValue upon query
-                          size_t &     disagreements,       // Counter for when AccessIJK() and GetValue() disagree
-                          bool         nudge = false);
+                          size_t &     disagreements        // Counter for when AccessIJK() and GetValue() disagree
+);
 
 void TestNodeIterator(const VAPoR::Grid *g, int &count, double &time);
 
