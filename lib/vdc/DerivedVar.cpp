@@ -1693,11 +1693,43 @@ bool DerivedCFVertCoordVar::ValidFormula(const vector<string> &required_terms, s
     return (true);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//
+// DerivedCFVertCoordVarFactory Class
+//
+/////////////////////////////////////////////////////////////////////////
+
+DerivedCFVertCoordVar *DerivedCFVertCoordVarFactory::CreateInstance(string standard_name, DC *dc, string mesh, string formula)
+{
+    DerivedCFVertCoordVar *instance = NULL;
+
+    // find standard_name in the registry and call factory method.
+    //
+    auto it = _factoryFunctionRegistry.find(standard_name);
+    if (it != _factoryFunctionRegistry.end()) instance = it->second(dc, mesh, formula);
+
+    if (instance != NULL)
+        return instance;
+    else
+        return NULL;
+}
+
+vector<string> DerivedCFVertCoordVarFactory::GetFactoryNames() const
+{
+    vector<string>                                                                       names;
+    map<string, function<DerivedCFVertCoordVar *(DC *, string, string)>>::const_iterator itr;
+
+    for (itr = _factoryFunctionRegistry.begin(); itr != _factoryFunctionRegistry.end(); ++itr) { names.push_back(itr->first); }
+    return (names);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //
 //	DerivedCoordVarStandardWRF_Terrain
 //
 //////////////////////////////////////////////////////////////////////////////
+
+static DerivedCFVertCoordVarFactoryRegistrar<DerivedCoordVarStandardWRF_Terrain> registrar_wrf_terrain("wrf_terrain");
 
 DerivedCoordVarStandardWRF_Terrain::DerivedCoordVarStandardWRF_Terrain(DC *dc, string mesh, string formula) : DerivedCFVertCoordVar("", dc, mesh, formula)
 {
@@ -1955,6 +1987,13 @@ bool DerivedCoordVarStandardWRF_Terrain::ValidFormula(string formula) { return (
 //	DerivedCoordVarStandardOceanSCoordinateG2
 //
 //////////////////////////////////////////////////////////////////////////////
+
+//
+// Register class with object factory!!!
+//
+static DerivedCFVertCoordVarFactoryRegistrar<DerivedCoordVarStandardOceanSCoordinateG2> registrar_ocean_s_coordinate_g1("ocean_s_coordinate_g1");
+
+static DerivedCFVertCoordVarFactoryRegistrar<DerivedCoordVarStandardOceanSCoordinateG2> registrar_ocean_s_coordinate_g2("ocean_s_coordinate_g2");
 
 DerivedCoordVarStandardOceanSCoordinateG2::DerivedCoordVarStandardOceanSCoordinateG2(DC *dc, string mesh, string formula) : DerivedCFVertCoordVar("", dc, mesh, formula)
 {
