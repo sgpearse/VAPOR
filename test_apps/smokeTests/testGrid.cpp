@@ -68,6 +68,7 @@
 #include <vector>
 #include <sstream>
 #include <cstdio>
+#include <algorithm>
 #include "vapor/VAssert.h"
 
 #include <vapor/CFuncs.h>
