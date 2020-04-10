@@ -110,7 +110,11 @@ int main(int argc, char **argv)
     std::vector<string> options;
     InitializeOptions(argc, argv, op, files, options);
 
-    for (int i = 0; i < files.size(); i++) { cout << files[i] << endl; }
+    for (int i = 0; i < files.size(); i++) {
+        std::string fileName = files[i];
+        fileName = fileName.substr(0, fileName.find_last_of("\\/"));
+        cout << fileName << endl;
+    }
 
     TestDataMgr(opt.fileType, opt.memsize, opt.nthreads, files, options);
 
