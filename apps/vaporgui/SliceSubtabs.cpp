@@ -3,8 +3,6 @@
 #include "TFEditor.h"
 #include "VLineItem.h"
 
-#include "vapor/RenderParams.h"
-
 #define MIN_SAMPLES         1
 #define MAX_SAMPLES         2000
 #define MIN_QUALITY         1
@@ -29,9 +27,8 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     QComboBox *refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
     connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
 
-    _PStrHLI = new PStringDropdownHLI("PStringDropdownHLI", {}, &RenderParams::GetVariableName, &RenderParams::SetVariableName);
-    layout->addWidget(_PStrHLI);
-    //_PVarHLI = new PVariableSelectorHLI( "PVariableSelectorHLI", &RenderParams::GetVariableName, &RenderParams::SetVariableName);
+    _PEnumHLI = new PEnumDropdownHLI<RenderParams>("PEnumDropdownHLI ( Refinement )", {}, {}, &RenderParams::GetRefinementLevel(), &RenderParams::SetRefinementLevel());
+    layout->addWidget(_PEnumHLI);
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
