@@ -12,7 +12,7 @@
 template<class P> class PVariableSelectorHLI : public PVariableSelector, public PWidgetHLI<P> {
 public:
     PVariableSelectorHLI(const std::string &label, typename PWidgetHLIBase<P, std::string>::GetterType getter, typename PWidgetHLIBase<P, std::string>::SetterType setter)
-    : PVariableSelector<P>(label, {}, getter, setter), PWidgetHLIBase<P, std::string>((PWidget *)this, getter, setter)
+    : PVariableSelector<P>("", label), PWidgetHLIBase<P, std::string>((PWidget *)this, getter, setter)
     {
     }
 };
