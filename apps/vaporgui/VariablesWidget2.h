@@ -26,8 +26,9 @@ public:
 private:
     PStringDropdown *_dimSelector;
 
-    PVariableSelector *    _scalarVar;
-    PFieldVariableSelector _fieldVars;
-    PVariableSelector *    _colorVar;
-    PVariableSelector *    _heightVar;
+    PVariableSelector *   _scalarVar;
+    PVariableSelectorHLI *_scalarVarHLI;
+    // PFieldVariableSelector  _fieldVars;
+    // PVariableSelector*      _colorVar;
+    // PVariableSelector*      _heightVar;
 };

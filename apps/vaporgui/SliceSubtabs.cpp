@@ -26,6 +26,9 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     connect(fidelityButtons, SIGNAL(buttonClicked(int)), this, SLOT(_setDefaultSampleRate()));
     QComboBox *refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
     connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
+
+    _vw2 = new VariablesWidget2();
+    layout->addWidget(_vw2);
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
@@ -33,6 +36,8 @@ void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *par
     _params = dynamic_cast<VAPoR::SliceParams *>(rParams);
     VAssert(_params);
     _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+
+    _vw2->Update(dataMgr, paramsMgr, rParams);
 }
 
 void SliceVariablesSubtab::_setDefaultSampleRate()
