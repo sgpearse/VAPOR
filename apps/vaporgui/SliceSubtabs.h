@@ -19,6 +19,7 @@ class DataMgr;
 }    // namespace VAPoR
 
 class TFEditor;
+class PGroup;
 
 class SliceVariablesSubtab : public QWidget, public Ui_SliceVariablesGUI {
     Q_OBJECT
@@ -33,7 +34,8 @@ private slots:
 
 private:
     VAPoR::SliceParams *_params;
-    PEnumDropdownHLI *  _PEnumHLI;
+    PGroup *            _pg;
+    // PEnumDropdownHLI*   _PEnumHLI;
 };
 
 class SliceAppearanceSubtab : public QWidget, public Ui_SliceAppearanceGUI {
