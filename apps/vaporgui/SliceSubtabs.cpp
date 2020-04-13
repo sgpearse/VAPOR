@@ -37,7 +37,7 @@ void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *par
     VAssert(_params);
     _variablesWidget->Update(dataMgr, paramsMgr, rParams);
 
-    _PStrHLI->Update(dataMgr, paramsMgr, rParams);
+    _PEnumHLI->Update(dataMgr, paramsMgr, rParams);
 }
 
 void SliceVariablesSubtab::_setDefaultSampleRate()
