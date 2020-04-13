@@ -157,12 +157,12 @@ void InitializeOptions(int argc, char **argv, OptionParser &op)
     if (opt.dims.size() != 3) {
         cerr << "The -dims flag must contain 3 elements if used" << endl;
         op.PrintOptionHelp(stderr);
-        exit(0);
+        exit(1);
     }
 
     if (opt.help) {
         op.PrintOptionHelp(stderr);
-        exit(0);
+        exit(1);
     }
 }
 
@@ -223,19 +223,19 @@ int main(int argc, char **argv)
 
     if (regularRC != 0) {
         cout << "Errors occurred while testing Grid::RegularGrid." << endl;
-        rc = -1;
+        rc = 1;
     }
     if (stretchedRC != 0) {
         cout << "Errors occurred while testing Grid::StretchedGrid." << endl;
-        rc = -1;
+        rc = 1;
     }
     if (layeredRC != 0) {
         cout << "Errors occurred while testing Grid::LayeredGrid." << endl;
-        rc = -1;
+        rc = 1;
     }
     if (curvilinearRC != 0) {
         cout << "Errors occurred while testing Grid::CurvilinearGrid." << endl;
-        rc = -1;
+        rc = 1;
     }
 
     double t1 = Wasp::GetTime();
