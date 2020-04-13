@@ -7,9 +7,10 @@
 #include "ui_SliceAnnotationGUI.h"
 #include "Flags.h"
 
-#include "VariablesWidget2.h"
-
 #include <vapor/SliceParams.h>
+
+#include "PStringDropdownHLI.h"
+#include "PVariableSelectorHLI.h"
 
 namespace VAPoR {
 class ControlExec;
@@ -32,8 +33,9 @@ private slots:
     void _setDefaultSampleRate();
 
 private:
-    VAPoR::SliceParams *     _params;
-    VAPoR::VariablesWidget2 *_vw2;
+    VAPoR::SliceParams *  _params;
+    PStringDropdownHLI *  _PStrHLI;
+    PVariableSelectorHLI *_PVarHLI;
 };
 
 class SliceAppearanceSubtab : public QWidget, public Ui_SliceAppearanceGUI {
