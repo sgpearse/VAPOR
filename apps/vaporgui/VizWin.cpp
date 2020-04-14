@@ -399,8 +399,9 @@ void VizWin::mousePressEvent(QMouseEvent *e)
         _buttonNum = 3;
     else if (e->button() == Qt::MidButton)
         _buttonNum = 2;
-    // If ctrl + left button is pressed, only respond in navigation mode
-    if ((_buttonNum == 1) && ((e->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)))) { _buttonNum = 0; }
+
+    // ControlModifier means [command], not [control] apparently
+    if (e->button() == Qt::LeftButton && (e->modifiers() & Qt::ShiftModifier)) _buttonNum = 2;
 
     if (_buttonNum == 0) {
         _mouseClicked = true;    // mouse button is held
