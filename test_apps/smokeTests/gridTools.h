@@ -21,8 +21,16 @@ bool CompareIndexToCoords(VAPoR::Grid *grid,
                           size_t &     disagreements        // Counter for when AccessIJK() and GetValue() disagree
 );
 
-// Returns the expected node count for the grid
-size_t TestNodeIterator(const VAPoR::Grid *g, int &count, double &time);
+// Returns the expected node count for Grid::ConstNodeIterator
+size_t TestConstNodeIterator(const VAPoR::Grid *g, int &count, double &time);
+
+// Returns the expected node count for Grid::Iterator
+size_t TestIterator(VAPoR::Grid *g, int &count, double &time);
+
+// Returns the expected node count for Grid::ConstCoordIterator
+size_t TestConstCoordItr(const VAPoR::Grid *g, int &count, double &time);
+
+void PrintGridIteratorResults(std::string &gridType, std::string itrType, int count, int expectedCount, double time);
 
 void PrintStats(double rms, size_t numMissingValues, size_t disagreements);
 
