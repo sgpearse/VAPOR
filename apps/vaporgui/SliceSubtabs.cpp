@@ -31,15 +31,7 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
 
     layout()->addWidget(_pg = new PGroup);
-    /*_pg->Add(
-        new PEnumDropdownHLI<VAPoR::RenderParams>(
-            "PEnumDropdownHLI ( Refinement )",
-            {"2", "3"},
-            {2, 3},
-            &VAPoR::RenderParams::GetRefinementLevel,
-            &VAPoR::RenderParams::SetRefinementLevel
-        )
-    );*/
+    _pg->Add(new PEnumDropdownHLI<VAPoR::RenderParams>("PEnumDropdownHLI ( Refinement )", {"2", "3"}, {2, 3}, &VAPoR::RenderParams::GetRefinementLevel, &VAPoR::RenderParams::SetRefinementLevel));
     _pg->Add(new PVariableSelectorHLI<VAPoR::RenderParams>("PVariableSelector ( Scalar )", &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName));
     /*_pg->Add(
         new PVariableSelectorHLI<VAPoR::RenderParams>(
