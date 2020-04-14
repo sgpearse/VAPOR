@@ -17,6 +17,9 @@ enum class FlowDir : int { FORWARD = 0, BACKWARD = 1, BI_DIR = 2 };
 
 class PARAMS_API FlowParams : public RenderParams {
 public:
+    enum RenderType { RenderTypeStream, RenderTypeSamples };
+    enum GlpyhType { GlpyhTypeSphere, GlpyhTypeArrow };
+
     // Constructors
     FlowParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave);
     FlowParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave, XmlNode *xmlNode);
@@ -96,6 +99,21 @@ public:
 
     int  GetSeedInjInterval() const;
     void SetSeedInjInterval(int);
+
+    static const std::string RenderTypeTag;
+    static const std::string RenderRadiusBaseTag;
+    static const std::string RenderRadiusScalarTag;
+    static const std::string RenderGeom3DTag;
+    static const std::string RenderLightAtCameraTag;
+    static const std::string RenderShowStreamDirTag;
+
+    static const std::string RenderGlyphTypeTag;
+    static const std::string RenderGlyphStrideTag;
+
+    static const std::string RenderFadeTailTag;
+    static const std::string RenderFadeTailStartTag;
+    static const std::string RenderFadeTailStopTag;
+    static const std::string RenderFadeTailLengthTag;
 
 private:
     static const std::string _isSteadyTag;
