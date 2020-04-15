@@ -259,13 +259,8 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
     setAttribute(Qt::WA_DeleteOnClose);
 
     // For vertical screens, reverse aspect ratio for window size
-    // QSize screenSize = QDesktopWidget().availableGeometry().size();
-
-    // QRect screenGeometry = QApplication::desktop()->screenGeometry();
     QScreen *screen = QGuiApplication::primaryScreen();
-
-    QRect screenSize = screen->geometry();
-    // QRect screenSize = QApplication::desktop()->screenGeometry();
+    QRect    screenSize = screen->geometry();
 
     if (screenSize.width() < screenSize.height()) {
         resize(screenSize.width() * .7, screenSize.width() * .7 * screenSize.width() / (float)screenSize.height());
