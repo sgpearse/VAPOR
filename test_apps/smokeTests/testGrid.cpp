@@ -132,8 +132,6 @@ OptionParser::Option_T get_options[] = {{"grids", Wasp::CvtToStrVec, &opt.grids,
 
 void InitializeOptions(int argc, char **argv, OptionParser &op)
 {
-    string s;
-
     std::string ProgName = FileUtils::LegacyBasename(argv[0]);
 
     MyBase::SetErrMsgFilePtr(stderr);
