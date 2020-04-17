@@ -208,7 +208,8 @@ size_t TestConstNodeIterator(const Grid *g, size_t &count, size_t &disagreements
 
     for (; itr != enditr; ++itr) {
         size_t i = count % dims[X];
-        size_t j = count / dims[X];
+        // size_t j = count / dims[X];
+        size_t j = (count / dims[X]) % dims[Y];
         size_t k = count / (dims[X] * dims[Y]);
 
         double itrData = g->GetValueAtIndex((*itr).data());
@@ -238,7 +239,8 @@ size_t TestIterator(Grid *g, size_t &count, size_t &disagreements, double &time)
 
     for (; itr != enditr; ++itr) {
         size_t i = count % dims[X];
-        size_t j = count / dims[X];
+        size_t j = (count / dims[X]) % dims[Y];
+        // size_t j = count / dims[X];
         size_t k = count / (dims[X] * dims[Y]);
 
         if (*itr != g->AccessIJK(i, j, k)) disagreements++;
@@ -266,7 +268,8 @@ size_t TestConstCoordItr(const Grid *g, size_t &count, size_t &disagreements, do
 
     for (; itr != enditr; ++itr) {
         size_t i = count % dims[X];
-        size_t j = count / dims[X];
+        size_t j = (count / dims[X]) % dims[Y];
+        // size_t j = ( count / dims[X] );
         size_t k = count / (dims[X] * dims[Y]);
         size_t ijk[] = {i, j, k};
         double coords[3];
@@ -276,7 +279,7 @@ size_t TestConstCoordItr(const Grid *g, size_t &count, size_t &disagreements, do
         for (size_t dim = 0; dim < dims.size(); dim++) {
             if ((*itr)[dim] != coords[dim]) {
                 disagree = true;
-                cout << count << " " << dim << " " << j << " " << (*itr)[dim] << " " << coords[dim] << endl;
+                // cout << count << " " << dim << " " << j << " " << (*itr)[dim] << " " << coords[dim] << endl;
             }
         }
         if (disagree) { disagreements++; }
