@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <algorithm>
@@ -196,6 +197,12 @@ bool CompareIndexToCoords(VAPoR::Grid *grid,
     return 0;
 }
 
+bool isNotEqual(double x, double y)
+{
+    const double epsilon = 1e-5;
+    return std::abs(x - y) > epsilon * std::abs(x);
+}
+
 size_t TestConstNodeIterator(const Grid *g, size_t &count, size_t &disagreements, double &time)
 {
     Grid::ConstNodeIterator itr;
@@ -208,13 +215,12 @@ size_t TestConstNodeIterator(const Grid *g, size_t &count, size_t &disagreements
 
     for (; itr != enditr; ++itr) {
         size_t i = count % dims[X];
-        // size_t j = count / dims[X];
         size_t j = (count / dims[X]) % dims[Y];
         size_t k = count / (dims[X] * dims[Y]);
 
         double itrData = g->GetValueAtIndex((*itr).data());
         double gridData = g->AccessIJK(i, j, k);
-        if (itrData != gridData) disagreements++;
+        if (isNotEqual(itrData, gridData)) disagreements++;
 
         count++;
     }
@@ -243,7 +249,7 @@ size_t TestIterator(Grid *g, size_t &count, size_t &disagreements, double &time)
         // size_t j = count / dims[X];
         size_t k = count / (dims[X] * dims[Y]);
 
-        if (*itr != g->AccessIJK(i, j, k)) disagreements++;
+        if (isNotEqual(*itr, g->AccessIJK(i, j, k))) disagreements++;
 
         count++;
     }
@@ -269,7 +275,6 @@ size_t TestConstCoordItr(const Grid *g, size_t &count, size_t &disagreements, do
     for (; itr != enditr; ++itr) {
         size_t i = count % dims[X];
         size_t j = (count / dims[X]) % dims[Y];
-        // size_t j = ( count / dims[X] );
         size_t k = count / (dims[X] * dims[Y]);
         size_t ijk[] = {i, j, k};
         double coords[3];
@@ -277,10 +282,7 @@ size_t TestConstCoordItr(const Grid *g, size_t &count, size_t &disagreements, do
         bool disagree = false;
         g->GetUserCoordinates(ijk, coords);
         for (size_t dim = 0; dim < dims.size(); dim++) {
-            if ((*itr)[dim] != coords[dim]) {
-                disagree = true;
-                // cout << count << " " << dim << " " << j << " " << (*itr)[dim] << " " << coords[dim] << endl;
-            }
+            if (isNotEqual((*itr)[dim], coords[dim])) { disagree = true; }
         }
         if (disagree) { disagreements++; }
 
