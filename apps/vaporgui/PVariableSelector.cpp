@@ -9,24 +9,28 @@
 using VAPoR::Box;
 using VAPoR::RenderParams;
 
-PVariableSelector::PVariableSelector(const std::string &tag, const std::string &label) : PStringDropdown(tag, {}, label) {}
+PVariableSelector::PVariableSelector(const std::string &tag, const std::string &label) : PStringDropdown(tag, {}, label), _nDims(3) {}
 
 void PVariableSelector::updateGUI() const
 {
     RenderParams *rp = dynamic_cast<RenderParams *>(getParams());
     assert(rp && "Params must be RenderParams");
 
-    int nDims = getDimensionality();
+    // int nDims = getDimensionality();
 
-    auto varNames = getDataMgr()->GetDataVarNames(nDims);
+    auto varNames = getDataMgr()->GetDataVarNames(_nDims);
     SetItems(varNames);
 
     PStringDropdown::updateGUI();
 }
 
+void PVariableSelector::SetDimensionality(int nDims) { _nDims = nDims; }
+
 int PVariableSelector::getDimensionality() const
 {
     // return rp->GetBox()->GetOrientation() == Box::XY ? 2 : 3;
 
-    return getDataMgr()->GetNumDimensions(getParamsString());
+    // return getDataMgr()->GetNumDimensions(getParamsString());
+
+    return _nDims;
 }

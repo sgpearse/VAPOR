@@ -3,6 +3,9 @@
 #include "vapor/BarbParams.h"
 #include "TFEditor.h"
 
+#include "PGroup.h"
+#include "VariablesWidget2.h"
+
 #define X 0
 #define Y 1
 #define Z 2
@@ -19,9 +22,18 @@ BarbVariablesSubtab::BarbVariablesSubtab(QWidget *parent)
 {
     setupUi(this);
     _variablesWidget->Reinit((VariableFlags)(VECTOR | HEIGHT | COLOR), (DimFlags)(TWOD | THREED));
+
+    _pg = new PGroup();
+    _pg->setEnabled(true);
+    layout()->addWidget(_pg);
+    _pg->Add(new VariablesWidget2());
 }
 
-void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams) { _variablesWidget->Update(dataMgr, paramsMgr, rParams); }
+void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
+{
+    _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+    _pg->Update(rParams, paramsMgr, dataMgr);
+}
 
 void BarbVariablesSubtab::Initialize(VAPoR::BarbParams *bParams, VAPoR::DataMgr *dataMgr) {}
 
