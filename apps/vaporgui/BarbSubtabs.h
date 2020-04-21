@@ -17,6 +17,7 @@ class BarbParams;
 
 class TFEditor;
 class PGroup;
+class VariablesWidget2;
 
 class BarbVariablesSubtab : public QWidget, public Ui_BarbVariablesGUI {
     Q_OBJECT
@@ -29,7 +30,8 @@ public:
     void Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams);
 
 private:
-    PGroup *_pg;
+    PGroup *          _pg;
+    VariablesWidget2 *_variablesWidget2;
 };
 
 class BarbAppearanceSubtab : public QWidget, public Ui_BarbAppearanceGUI {

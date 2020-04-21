@@ -18,6 +18,7 @@ class DataMgr;
 
 class TFEditor;
 class PGroup;
+class VariablesWidget2;
 
 class SliceVariablesSubtab : public QWidget, public Ui_SliceVariablesGUI {
     Q_OBJECT
@@ -33,6 +34,7 @@ private slots:
 private:
     VAPoR::SliceParams *_params;
     PGroup *            _pg;
+    VariablesWidget2 *  _variablesWidget2;
 };
 
 class SliceAppearanceSubtab : public QWidget, public Ui_SliceAppearanceGUI {

@@ -23,15 +23,14 @@ BarbVariablesSubtab::BarbVariablesSubtab(QWidget *parent)
     setupUi(this);
     _variablesWidget->Reinit((VariableFlags)(VECTOR | HEIGHT | COLOR), (DimFlags)(TWOD | THREED));
 
-    _pg = new PGroup();
-    _pg->setEnabled(true);
-    layout()->addWidget(_pg);
-    _pg->Add(new VariablesWidget2());
+    _variablesWidget2 = new VariablesWidget2();
+    layout()->addWidget(_variablesWidget2);
 }
 
 void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
 {
     _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+    _variablesWidget2->Update(dataMgr, paramsMgr, rParams);
     _pg->Update(rParams, paramsMgr, dataMgr);
 }
 
