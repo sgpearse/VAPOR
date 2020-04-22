@@ -24,13 +24,13 @@ bool CompareIndexToCoords(VAPoR::Grid *grid,
 bool isNotEqual(double x, double y);
 
 // Returns the expected node count for Grid::ConstNodeIterator
-size_t TestConstNodeIterator(const VAPoR::Grid *g, size_t &count, size_t &disagreements, double &time);
+bool TestConstNodeIterator(const VAPoR::Grid *g, size_t &count, size_t &expectedCount, size_t &disagreements, double &time);
 
 // Returns the expected node count for Grid::Iterator
-size_t TestIterator(VAPoR::Grid *g, size_t &count, size_t &disagreements, double &time);
+bool TestIterator(VAPoR::Grid *g, size_t &count, size_t &expectedCount, size_t &disagreements, double &time);
 
 // Returns the expected node count for Grid::ConstCoordIterator
-size_t TestConstCoordItr(const VAPoR::Grid *g, size_t &count, size_t &disagreements, double &time);
+bool TestConstCoordItr(const VAPoR::Grid *g, size_t &count, size_t &expectedCount, size_t &disagreements, double &time);
 
 void PrintGridIteratorResults(std::string &gridType, std::string itrType, size_t count, size_t expectedCount, size_t disagreements, double time);
 
