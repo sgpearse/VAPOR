@@ -404,7 +404,7 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
  */
 MainForm::~MainForm()
 {
-    if (_paramsWidgetDemo) _paramsWidgetDemo->close();
+    if (_paramsWidgetDemo) { _paramsWidgetDemo->close(); }
 
     if (_modeStatusWidget) delete _modeStatusWidget;
     if (_banner) delete _banner;
