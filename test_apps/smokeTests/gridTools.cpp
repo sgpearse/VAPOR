@@ -210,11 +210,11 @@ bool TestConstNodeIterator(const Grid *g, size_t &count, size_t &expectedCount, 
     count = 0;
     expectedCount = 1;
     disagreements = 0;
+    double t0 = Wasp::GetTime();
 
     Grid::ConstNodeIterator itr;
     Grid::ConstNodeIterator enditr = g->ConstNodeEnd();
 
-    double t0 = Wasp::GetTime();
     itr = g->ConstNodeBegin();
 
     std::vector<size_t> dims = g->GetDimensions();
@@ -243,11 +243,11 @@ bool TestIterator(Grid *g, size_t &count, size_t &expectedCount, size_t &disagre
     count = 0;
     expectedCount = 1;
     disagreements = 0;
+    double t0 = Wasp::GetTime();
 
     Grid::Iterator itr;
     Grid::Iterator enditr = g->end();
 
-    double t0 = Wasp::GetTime();
     itr = g->begin();
 
     std::vector<size_t> dims = g->GetDimensions();
@@ -273,11 +273,11 @@ bool TestConstCoordItr(const Grid *g, size_t &count, size_t &expectedCount, size
     count = 0;
     expectedCount = 1;
     disagreements = 0;
+    double t0 = Wasp::GetTime();
 
     Grid::ConstCoordItr itr;
     Grid::ConstCoordItr enditr = g->ConstCoordEnd();
 
-    double t0 = Wasp::GetTime();
     itr = g->ConstCoordBegin();
 
     std::vector<size_t> dims = g->GetDimensions();
