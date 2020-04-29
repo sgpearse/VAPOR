@@ -163,6 +163,9 @@ int RenderParams::Initialize()
     _transform->SetOrigin(origin);
 
     _classInitialized = true;
+
+    SetDefaultVariables(3, false);
+
     return (0);
 }
 

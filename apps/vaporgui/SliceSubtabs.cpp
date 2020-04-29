@@ -26,32 +26,20 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     setupUi(this);
     _variablesWidget->Reinit((VariableFlags)(SCALAR), (DimFlags)(THREED));
 
-    QButtonGroup *fidelityButtons = _variablesWidget->_fidelityWidget->GetFidelityButtons();
+    QButtonGroup *fidelityButtons;
+    fidelityButtons = _variablesWidget->_fidelityWidget->GetFidelityButtons();
     connect(fidelityButtons, SIGNAL(buttonClicked(int)), this, SLOT(_setDefaultSampleRate()));
-    QComboBox *refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
+    QComboBox *refinementCombo;
+    refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
+
     connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
 
     layout()->addWidget(_pg = new PGroup());
     _pg->Add(new PEnumDropdownHLI<VAPoR::RenderParams>("PEnumDropdownHLI ( Refinement )", {"2D", "3D"}, {2, 3}, &VAPoR::RenderParams::GetRefinementLevel, &VAPoR::RenderParams::SetRefinementLevel));
-    _pg->Add(new PVariableSelectorHLI<VAPoR::RenderParams>("PVariableSelector ( Scalar )", &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName));
 
     _variablesWidget2 = new VariablesWidget2();
     layout()->addWidget(_variablesWidget2);
-    //_pg->Add( new VariablesWidget2() );
-    /*_pg->Add(
-        new PVariableSelectorHLI<VAPoR::RenderParams>(
-            "PVariableSelector ( Color )",
-            &VAPoR::RenderParams::GetColorMapVariableName,
-            &VAPoR::RenderParams::SetColorMapVariableName
-        )
-    );
-    _pg->Add(
-        new PVariableSelectorHLI<VAPoR::RenderParams>(
-            "PVariableSelector ( Height )",
-            &VAPoR::RenderParams::GetHeightVariableName,
-            &VAPoR::RenderParams::SetHeightVariableName
-        )
-    );*/
+    _variablesWidget2->Reinit((VariableFlags)(SCALAR), (DimFlags)(THREED));
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)

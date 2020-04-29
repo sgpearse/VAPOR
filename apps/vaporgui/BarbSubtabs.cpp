@@ -31,7 +31,7 @@ void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *para
 {
     _variablesWidget->Update(dataMgr, paramsMgr, rParams);
     _variablesWidget2->Update(dataMgr, paramsMgr, rParams);
-    _pg->Update(rParams, paramsMgr, dataMgr);
+    //_pg->Update( rParams, paramsMgr, dataMgr );
 }
 
 void BarbVariablesSubtab::Initialize(VAPoR::BarbParams *bParams, VAPoR::DataMgr *dataMgr) {}
