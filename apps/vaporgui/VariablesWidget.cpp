@@ -28,6 +28,7 @@
 #include "vapor/ParamsMgr.h"
 #include "vapor/DataMgr.h"
 #include "VariablesWidget.h"
+#include "PEnumDropdownHLI.h"
 
 #define TWODIMS   2
 #define THREEDIMS 3
@@ -42,6 +43,11 @@ VariablesWidget::VariablesWidget(QWidget *parent) : QWidget(parent), Ui_Variable
     _activeDim = THREEDIMS;
 
     setupUi(this);
+
+    _pg = new PGroup();
+    _dropdown = new PEnumDropdownHLI<VAPoR::RenderParams>("PEnumDropdownHLI", {"foo", "bar"}, {1, 2}, &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName);
+    _pg->Add(_dropdown);
+    layout()->addWidget(_pg);
 
     connect(varnameCombo, SIGNAL(activated(const QString &)), this, SLOT(setVarName(const QString &)));
     connect(varCombo1, SIGNAL(activated(const QString &)), this, SLOT(setXVarName(const QString &)));
@@ -452,6 +458,8 @@ void VariablesWidget::Update(const DataMgr *dataMgr, ParamsMgr *paramsMgr, Rende
     _dataMgr = dataMgr;
     _paramsMgr = paramsMgr;
     _rParams = rParams;
+
+    _pg->Update(paramsMgr, rParams, dataMgr);
 
     vector<string> setVarsReq = _rParams->GetFieldVariableNames();
 
