@@ -14,6 +14,7 @@ class PVariableSelector;
 // class PVariableSelectorHLI;
 class VComboBox;
 class VLineItem;
+class FidelityWidget2;
 
 class VariablesWidget2 : public VSection {
     Q_OBJECT
@@ -50,6 +51,10 @@ private:
     PVariableSelector *_zFieldCombo;
     PVariableSelector *_colorCombo;
     PVariableSelector *_heightCombo;
+
+    FidelityWidget2 *_fidelityWidget;
+
+    static const std::string _sectionTitle;
 
     /*
     /Users/pearse/VAPOR/apps/vaporgui/PVariableSelectorHLI.h:13:7:

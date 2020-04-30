@@ -6,13 +6,16 @@
 #include "PEnumDropdownHLI.h"
 #include "PVariableSelectorHLI.h"
 #include "VComboBox.h"
+#include "FidelityWidget2.h"
 
 #include "vapor/RenderParams.h"
 
 #include <QLayout>
 #include <QLabel>
 
-VariablesWidget2::VariablesWidget2() : VSection("Variable Selection"), _activeDim(3), _initialized(false)
+const std::string VariablesWidget2::_sectionTitle = "Variable Selection";
+
+VariablesWidget2::VariablesWidget2() : VSection(_sectionTitle), _activeDim(3), _initialized(false)
 {
     _dimCombo = new VComboBox({"3D", "2D"});
     _dimLineItem = new VLineItem("Variable Dimension", _dimCombo);
@@ -47,6 +50,9 @@ VariablesWidget2::VariablesWidget2() : VSection("Variable Selection"), _activeDi
     _pg->Add(_heightCombo);
 
     layout()->addWidget(_pg);
+
+    _fidelityWidget = new FidelityWidget2(this);
+    layout()->addWidget(_fidelityWidget);
 
     //
     // Cannot add widgets directly to the layout because it's not vertical.
@@ -192,7 +198,8 @@ void VariablesWidget2::Update(
     _paramsMgr = paramsMgr;
     _rParams = rParams;
 
-    _pg->Update(_rParams, paramsMgr, _dataMgr);
+    _pg->Update(_rParams, _paramsMgr, _dataMgr);
+    _fidelityWidget->Update(_dataMgr, _paramsMgr, _rParams);
     /*_scalarCombo->Update( _rParams, _paramsMgr, _dataMgr );
     _xFieldCombo->Update( _rParams, _paramsMgr, _dataMgr );
     _yFieldCombo->Update( _rParams, _paramsMgr, _dataMgr );
