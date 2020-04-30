@@ -19,6 +19,8 @@ VariablesWidget2::VariablesWidget2() : VSection("Variable Selection"), _activeDi
     layout()->addWidget(_dimLineItem);
     connect(_dimCombo, &VComboBox::ValueChanged, this, &VariablesWidget2::_dimChanged);
 
+    _dimLineItem->hide();
+
     _pg = new PGroup();
     _scalarCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Variable Name", &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName);
     _scalarCombo->SetDimensionality(3);
