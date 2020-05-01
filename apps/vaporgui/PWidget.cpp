@@ -1,3 +1,4 @@
+#include <cassert>
 #include "PWidget.h"
 #include <vapor/VAssert.h>
 #include <vapor/ParamsBase.h>

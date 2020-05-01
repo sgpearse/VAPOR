@@ -44,6 +44,8 @@ if (APPLE)
 	add_definitions (-DDarwin)
 elseif (WIN32)
 	add_definitions (-DWIN32 -DNOMINMAX)
+elseif (UNIX AND NOT APPLE)
+        set(OpenGL_GL_PREFERENCE GLVND)  # Prefer modern OpenGL, not legacy if both are available
 endif()
 
 # compiler warning flags
