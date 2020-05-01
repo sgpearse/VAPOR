@@ -36,3 +36,7 @@ void PEnumDropdown::dropdownIndexChanged(int index)
     }
     setParamsLong(value);
 }
+
+void PEnumDropdown::SetItems(std::vector<std::string> &items) { _vComboBox->SetOptions(items); }
+
+void PEnumDropdown::SetValues(std::vector<long> &values) { _enumMap = values; }
