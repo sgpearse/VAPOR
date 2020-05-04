@@ -8,20 +8,19 @@
 #include "VComboBox.h"
 #include "FidelityWidget.h"
 #include "FidelityWidget2.h"
+#include "Foo.h"
 
 #include "vapor/RenderParams.h"
 
 #include <QLayout>
 #include <QLabel>
 
-#include "foo.h"
-
 const std::string VariablesWidget2::_sectionTitle = "Variable Selection";
 
 VariablesWidget2::VariablesWidget2() : VSection(_sectionTitle), _activeDim(3), _initialized(false)
 {
-    // foo<int>* _foo = new foo<int>( 42 );
     Foo<int> *_foo = new Foo<int>(42);
+    _foo->PrintType();
 
     _dimCombo = new VComboBox({"3D", "2D"});
     _dimLineItem = new VLineItem("Variable Dimension", _dimCombo);
@@ -31,29 +30,57 @@ VariablesWidget2::VariablesWidget2() : VSection(_sectionTitle), _activeDim(3), _
     _dimLineItem->hide();
 
     _pg = new PGroup();
-    _scalarCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Variable Name", &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName);
-    _scalarCombo->SetDimensionality(3);
+    _enumHLI = new PEnumDropdownHLI<VAPoR::RenderParams>("Level of Detail", {}, {}, &VAPoR::RenderParams::GetCompressionLevel, &VAPoR::RenderParams::SetCompressionLevel);
+    _pg->Add(_enumHLI);
+    /*_scalarCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "Variable Name",
+            &VAPoR::RenderParams::GetVariableName,
+            &VAPoR::RenderParams::SetVariableName
+        );
+    _scalarCombo->SetDimensionality( 3 );
     _pg->Add(_scalarCombo);
 
-    _xFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("X", &VAPoR::RenderParams::GetXFieldVariableName, &VAPoR::RenderParams::SetXFieldVariableName);
-    _xFieldCombo->SetDimensionality(3);
+    _xFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "X",
+            &VAPoR::RenderParams::GetXFieldVariableName,
+            &VAPoR::RenderParams::SetXFieldVariableName
+        );
+    _xFieldCombo->SetDimensionality( 3 );
     _pg->Add(_xFieldCombo);
 
-    _yFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Y", &VAPoR::RenderParams::GetYFieldVariableName, &VAPoR::RenderParams::SetYFieldVariableName);
-    _yFieldCombo->SetDimensionality(3);
+    _yFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "Y",
+            &VAPoR::RenderParams::GetYFieldVariableName,
+            &VAPoR::RenderParams::SetYFieldVariableName
+        );
+    _yFieldCombo->SetDimensionality( 3 );
     _pg->Add(_yFieldCombo);
 
-    _zFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Z", &VAPoR::RenderParams::GetZFieldVariableName, &VAPoR::RenderParams::SetZFieldVariableName);
-    _zFieldCombo->SetDimensionality(3);
+    _zFieldCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "Z",
+            &VAPoR::RenderParams::GetZFieldVariableName,
+            &VAPoR::RenderParams::SetZFieldVariableName
+        );
+    _zFieldCombo->SetDimensionality( 3 );
     _pg->Add(_zFieldCombo);
 
-    _colorCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Color mapped variable", &VAPoR::RenderParams::GetColorMapVariableName, &VAPoR::RenderParams::SetColorMapVariableName);
-    _colorCombo->SetDimensionality(3);
+    _colorCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "Color mapped variable",
+            &VAPoR::RenderParams::GetColorMapVariableName,
+            &VAPoR::RenderParams::SetColorMapVariableName
+        );
+    _colorCombo->SetDimensionality( 3 );
     _pg->Add(_colorCombo);
 
-    _heightCombo = new PVariableSelectorHLI<VAPoR::RenderParams>("Height variable", &VAPoR::RenderParams::GetHeightVariableName, &VAPoR::RenderParams::SetHeightVariableName);
-    _heightCombo->SetDimensionality(2);
+    _heightCombo = new PVariableSelectorHLI<VAPoR::RenderParams>(
+            "Height variable",
+            &VAPoR::RenderParams::GetHeightVariableName,
+            &VAPoR::RenderParams::SetHeightVariableName
+        );
+    _heightCombo->SetDimensionality( 2 );
     _pg->Add(_heightCombo);
+
+    */
 
     layout()->addWidget(_pg);
 
@@ -139,44 +166,49 @@ void VariablesWidget2::Reinit(VariableFlags variableFlags, DimFlags dimFlags)
 
     // If the renderer is not both 2D and 3D, hide
     // the dimension selector and set the _activeDim
-    if (!((_dimFlags & 2) && (_dimFlags & 3))) {
+    /*if (! ( ( _dimFlags & 2 ) && ( _dimFlags & 3 ) )
+    ) {
         _dimCombo->hide();
         if (dimFlags & THREED) {
             _activeDim = 3;
-        } else {
+        }
+        else {
             _activeDim = 2;
         }
     }
 
     if (_variableFlags & SCALAR) {
         _scalarCombo->show();
-    } else {
+    }
+    else {
         _scalarCombo->hide();
     }
 
-    if (_variableFlags & VECTOR) {
+    if ( _variableFlags & VECTOR ) {
         cout << "showing vecs" << endl;
         _xFieldCombo->show();
         _yFieldCombo->show();
         _zFieldCombo->show();
-        _xFieldCombo->setVisible(true);
-        _yFieldCombo->setVisible(true);
-        _zFieldCombo->setVisible(true);
-    } else {
+        _xFieldCombo->setVisible( true );
+        _yFieldCombo->setVisible( true );
+        _zFieldCombo->setVisible( true );
+    }
+    else {
         cout << "hiding vecs" << endl;
         _xFieldCombo->hide();
         _yFieldCombo->hide();
         _zFieldCombo->hide();
-        _xFieldCombo->setVisible(false);
-        _yFieldCombo->setVisible(false);
-        _zFieldCombo->setVisible(false);
+        _xFieldCombo->setVisible( false );
+        _yFieldCombo->setVisible( false );
+        _zFieldCombo->setVisible( false );
     }
 
-    if (_variableFlags & HEIGHT) {
+    if ( _variableFlags & HEIGHT ) {
         _heightCombo->show();
-    } else {
-        _heightCombo->hide();
     }
+    else {
+        _heightCombo->hide();
+    }*/
 
     //_rParams->SetDefaultVariables( _activeDim, false );
 
@@ -223,16 +255,16 @@ void VariablesWidget2::_dimChanged()
 
     _rParams->SetDefaultVariables(_activeDim, false);
 
-    _scalarCombo->SetDimensionality(_activeDim);
-    _xFieldCombo->SetDimensionality(_activeDim);
-    _yFieldCombo->SetDimensionality(_activeDim);
-    _zFieldCombo->SetDimensionality(_activeDim);
-    _colorCombo->SetDimensionality(_activeDim);
+    /*_scalarCombo->SetDimensionality( _activeDim );
+    _xFieldCombo->SetDimensionality( _activeDim );
+    _yFieldCombo->SetDimensionality( _activeDim );
+    _zFieldCombo->SetDimensionality( _activeDim );
+    _colorCombo->SetDimensionality(  _activeDim );*/
 }
 
-int VariablesWidget2::GetActiveDimension() const {}
+int VariablesWidget2::GetActiveDimension() const { return _activeDim; }
 
-DimFlags VariablesWidget2::GetDimFlags() const {}
+DimFlags VariablesWidget2::GetDimFlags() const { return _dimFlags; }
 
 void VariablesWidget2::Configure2DFieldVars() {}
 
