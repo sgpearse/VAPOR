@@ -43,9 +43,9 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     VariableFlags variableFlags = (VariableFlags)(SCALAR);
     _variablesWidget2->Reinit(variableFlags, (DimFlags)(THREED));
 
-    _fidelityWidget2 = new FidelityWidget2();
-    layout()->addWidget(_fidelityWidget2);
-    _fidelityWidget2->Reinit(variableFlags);
+    //_fidelityWidget2 = new FidelityWidget2();
+    // layout()->addWidget( _fidelityWidget2 );
+    //_fidelityWidget2->Reinit( variableFlags );
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)

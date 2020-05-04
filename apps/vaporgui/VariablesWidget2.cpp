@@ -14,10 +14,15 @@
 #include <QLayout>
 #include <QLabel>
 
+#include "foo.h"
+
 const std::string VariablesWidget2::_sectionTitle = "Variable Selection";
 
 VariablesWidget2::VariablesWidget2() : VSection(_sectionTitle), _activeDim(3), _initialized(false)
 {
+    // foo<int>* _foo = new foo<int>( 42 );
+    Foo<int> *_foo = new Foo<int>(42);
+
     _dimCombo = new VComboBox({"3D", "2D"});
     _dimLineItem = new VLineItem("Variable Dimension", _dimCombo);
     layout()->addWidget(_dimLineItem);

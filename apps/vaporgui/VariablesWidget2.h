@@ -9,9 +9,10 @@ class ParamsMgr;
 class RenderParams;
 }    // namespace VAPoR
 
+// class foo;
+template<typename T> class Foo;
 class PGroup;
 class PVariableSelector;
-// class PVariableSelectorHLI;
 class VComboBox;
 class VLineItem;
 class FidelityWidget2;
@@ -34,6 +35,9 @@ public:
     void Configure3DFieldVars();
 
 private:
+    // foo* _foo;
+    Foo<int> *_foo;
+
     size_t _activeDim;
     bool   _initialized;
 
@@ -44,6 +48,14 @@ private:
     VLineItem *_dimLineItem;
 
     PGroup *_pg;
+
+    /*PVariableSelectorHLI* _scalarCombo;
+    PVariableSelectorHLI* _xFieldCombo;
+    PVariableSelectorHLI* _yFieldCombo;
+    PVariableSelectorHLI* _zFieldCombo;
+    PVariableSelectorHLI* _colorCombo;
+    PVariableSelectorHLI* _heightCombo;
+    */
 
     PVariableSelector *_scalarCombo;
     PVariableSelector *_xFieldCombo;
