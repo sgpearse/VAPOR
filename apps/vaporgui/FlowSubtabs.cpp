@@ -131,23 +131,26 @@ FlowAppearanceSubtab::FlowAppearanceSubtab(QWidget *parent) : QVaporSubtab(paren
     PSection *ps;
 
     _pw->Add(ps = new PSection("Appearance"));
-    ps->Add(new PEnumDropdown(FlowParams::RenderTypeTag, {"Stream", "Samples"}, {FlowParams::RenderTypeStream, FlowParams::RenderTypeSamples}, "Render Type"));
+    ps->Add(new PEnumDropdown(FlowParams::RenderTypeTag, {"Lines", "Samples"}, {FlowParams::RenderTypeStream, FlowParams::RenderTypeSamples}, "Render Type"));
     ps->Add((new PEnumDropdown(FlowParams::RenderGlyphTypeTag, {"Circle", "Arrow"}, {FlowParams::GlpyhTypeSphere, FlowParams::GlpyhTypeArrow}, "Glyph Type"))
                 ->ShowBasedOnParam(FlowParams::RenderTypeTag, FlowParams::RenderTypeSamples));
     ps->Add(new PCheckbox(FlowParams::RenderGeom3DTag, "3D Geometry"));
-    ps->Add((new PCheckbox(FlowParams::RenderLightAtCameraTag, "Light From Camera"))->ShowBasedOnParam(FlowParams::RenderGeom3DTag));
-    ps->Add((new PDoubleInput(FlowParams::RenderRadiusBaseTag, "Radius")));
-    ps->Add((new PDoubleSliderEdit(FlowParams::RenderRadiusScalarTag, "Radius Scalar"))->SetRange(0.1, 3)->EnableDynamicUpdate());
+    //    ps->Add((new PCheckbox(FlowParams::RenderLightAtCameraTag, "Light From Camera"))->ShowBasedOnParam(FlowParams::RenderGeom3DTag));
+    //    ps->Add((new PDoubleInput(FlowParams::RenderRadiusBaseTag, "Radius")));
+    ps->Add((new PDoubleSliderEdit(FlowParams::RenderRadiusScalarTag, "Radius Scalar"))->SetRange(0.1, 5)->EnableDynamicUpdate());
 
     PGroup *streamGroup = new PGroup;
     streamGroup->ShowBasedOnParam(FlowParams::RenderTypeTag, FlowParams::RenderTypeStream);
     ps->Add(streamGroup);
 
     streamGroup->Add((new PCheckbox(FlowParams::RenderShowStreamDirTag, "Show Stream Direction"))->ShowBasedOnParam(FlowParams::RenderTypeTag, FlowParams::RenderTypeStream));
-    streamGroup->Add((new PIntegerSliderEdit(FlowParams::RenderGlyphStrideTag, "Every N Samples"))->SetRange(1, 20)->EnableDynamicUpdate()->ShowBasedOnParam(FlowParams::RenderShowStreamDirTag));
+    PGroup *showDirGroup = new PSubGroup;
+    showDirGroup->ShowBasedOnParam(FlowParams::RenderShowStreamDirTag);
+    streamGroup->Add(showDirGroup);
+    showDirGroup->Add((new PIntegerSliderEdit(FlowParams::RenderGlyphStrideTag, "Every N Samples"))->SetRange(1, 20)->EnableDynamicUpdate());
 
     streamGroup->Add((new PCheckbox(FlowParams::RenderFadeTailTag, "Fade Flow Tails")));
-    PGroup *fadeGroup = new PGroup;
+    PGroup *fadeGroup = new PSubGroup;
     fadeGroup->ShowBasedOnParam(FlowParams::RenderFadeTailTag);
     streamGroup->Add(fadeGroup);
     fadeGroup->Add(
@@ -160,7 +163,16 @@ FlowAppearanceSubtab::FlowAppearanceSubtab(QWidget *parent) : QVaporSubtab(paren
     PGroup *sampleGroup = new PGroup;
     sampleGroup->ShowBasedOnParam(FlowParams::RenderTypeTag, FlowParams::RenderTypeSamples);
     ps->Add(sampleGroup);
-    sampleGroup->Add((new PIntegerSliderEdit(FlowParams::RenderGlyphStrideTag, "Every N Samples"))->SetRange(1, 20)->EnableDynamicUpdate());
+    sampleGroup->Add(
+        (new PIntegerSliderEdit(FlowParams::RenderGlyphStrideTag, "Every N Samples"))->SetRange(1, 20)->EnableDynamicUpdate()->EnableBasedOnParam(FlowParams::RenderGlyphOnlyLeadingTag, false));
+    sampleGroup->Add(new PCheckbox(FlowParams::RenderGlyphOnlyLeadingTag, "Only Show Leading Sample"));
+
+    _pw->Add(ps = new PSection("Lighting"));
+    ps->EnableBasedOnParam(FlowParams::RenderGeom3DTag);
+    ps->Add((new PDoubleSliderEdit(FlowParams::PhongAmbientTag, "Ambient"))->EnableDynamicUpdate());
+    ps->Add((new PDoubleSliderEdit(FlowParams::PhongDiffuseTag, "Diffuse"))->EnableDynamicUpdate());
+    ps->Add((new PDoubleSliderEdit(FlowParams::PhongSpecularTag, "Specular"))->EnableDynamicUpdate());
+    ps->Add((new PDoubleSliderEdit(FlowParams::PhongShininessTag, "Specular"))->SetRange(1, 100)->EnableDynamicUpdate());
 
 #ifndef NDEBUG
     _pw->Add((ps = new PSection("Debug"))->SetTooltip("Only accessible in debug build."));
