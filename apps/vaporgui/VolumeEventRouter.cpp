@@ -22,6 +22,12 @@ static RenderEventRouterRegistrar<VolumeEventRouter> registrar(VolumeEventRouter
 
 VolumeEventRouter::VolumeEventRouter(QWidget *parent, ControlExec *ce) : QTabWidget(parent), RenderEventRouter(ce, VolumeParams::GetClassType())
 {
+    _pDoubleInput = new PDoubleInput("demo_double", "PDoubleInput");
+    addTab(_pDoubleInput, "PDoubleInput Tab");
+
+    _pIntegerInput = new PIntegerInput("demo_int", "PIntegerInput");
+    addTab(_pIntegerInput, "PIntegerInput Tab");
+
     _variables = new VolumeVariablesSubtab(this);
     QScrollArea *qsvar = new QScrollArea(this);
     qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -69,6 +75,10 @@ void VolumeEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
 
 void VolumeEventRouter::_updateTab()
 {
+    _pDoubleInput->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
+
+    _pIntegerInput->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
+
     // The variable tab updates itself:
     //
     _variables->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
