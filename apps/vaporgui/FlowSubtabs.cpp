@@ -131,7 +131,7 @@ FlowAppearanceSubtab::FlowAppearanceSubtab(QWidget *parent) : QVaporSubtab(paren
     PSection *ps;
 
     _pw->Add(ps = new PSection("Appearance"));
-    ps->Add(new PEnumDropdown(FlowParams::RenderTypeTag, {"Lines", "Samples"}, {FlowParams::RenderTypeStream, FlowParams::RenderTypeSamples}, "Render Type"));
+    ps->Add(new PEnumDropdown(FlowParams::RenderTypeTag, {"Tubes", "Samples"}, {FlowParams::RenderTypeStream, FlowParams::RenderTypeSamples}, "Render Type"));
     ps->Add((new PEnumDropdown(FlowParams::RenderGlyphTypeTag, {"Circle", "Arrow"}, {FlowParams::GlpyhTypeSphere, FlowParams::GlpyhTypeArrow}, "Glyph Type"))
                 ->ShowBasedOnParam(FlowParams::RenderTypeTag, FlowParams::RenderTypeSamples));
     ps->Add(new PCheckbox(FlowParams::RenderGeom3DTag, "3D Geometry"));
@@ -168,7 +168,7 @@ FlowAppearanceSubtab::FlowAppearanceSubtab(QWidget *parent) : QVaporSubtab(paren
     sampleGroup->Add(new PCheckbox(FlowParams::RenderGlyphOnlyLeadingTag, "Only Show Leading Sample"));
 
     _pw->Add(ps = new PSection("Lighting"));
-    ps->EnableBasedOnParam(FlowParams::RenderGeom3DTag);
+    ps->ShowBasedOnParam(FlowParams::RenderGeom3DTag);
     ps->Add((new PDoubleSliderEdit(FlowParams::PhongAmbientTag, "Ambient"))->EnableDynamicUpdate());
     ps->Add((new PDoubleSliderEdit(FlowParams::PhongDiffuseTag, "Diffuse"))->EnableDynamicUpdate());
     ps->Add((new PDoubleSliderEdit(FlowParams::PhongSpecularTag, "Specular"))->EnableDynamicUpdate());
