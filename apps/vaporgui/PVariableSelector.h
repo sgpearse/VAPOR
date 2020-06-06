@@ -12,14 +12,21 @@ class VCheckBox;
 
 class PVariableSelector : public PStringDropdown {
     Q_OBJECT
+    bool _addNull = false;
 
 public:
     PVariableSelector(const std::string &tag, const std::string &label = "");
+    PVariableSelector *AddNullOption()
+    {
+        _addNull = true;
+        return this;
+    }
 
 protected:
-    void        updateGUI() const override;
-    bool        requireDataMgr() const override { return true; }
-    virtual int getDimensionality() const;
+    void         updateGUI() const override;
+    bool         requireDataMgr() const override { return true; }
+    virtual int  getDimensionality() const;
+    virtual void dropdownTextChanged(std::string text) override;
 };
 
 //! \class PVariableSelector2D

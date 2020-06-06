@@ -19,9 +19,23 @@ BarbVariablesSubtab::BarbVariablesSubtab(QWidget *parent)
 {
     setupUi(this);
     _variablesWidget->Reinit((VariableFlags)(VECTOR | HEIGHT | COLOR), (DimFlags)(TWOD | THREED));
+    _variablesWidget->hide();
+
+    ((QVBoxLayout *)layout())->insertWidget(1, pg = new PGroup);
+    PSection *vars = new PSection("Variable Selection");
+    vars->Add(new PDimensionSelector);
+    vars->Add(new PFieldVariablesSelector);
+    vars->Add(new PColorMapVariableSelector);
+    vars->Add(new PHeightVariableSelector);
+    pg->Add(vars);
+    pg->Add(new PFidelityWidget);
 }
 
-void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams) { _variablesWidget->Update(dataMgr, paramsMgr, rParams); }
+void BarbVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
+{
+    //    _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+    pg->Update(rParams, paramsMgr, dataMgr);
+}
 
 void BarbVariablesSubtab::Initialize(VAPoR::BarbParams *bParams, VAPoR::DataMgr *dataMgr) {}
 

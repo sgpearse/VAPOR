@@ -15,17 +15,34 @@ class ParamsMgr;
 class DataMgr;
 }    // namespace VAPoR
 
+#include "PVariablesWidget.h"
+
 class WireFrameVariablesSubtab : public QWidget, public Ui_WireFrameVariablesGUI {
     Q_OBJECT
+
+    PGroup *pg;
 
 public:
     WireFrameVariablesSubtab(QWidget *parent)
     {
         setupUi(this);
         _variablesWidget->Reinit((VariableFlags)(SCALAR | HEIGHT), (DimFlags)(THREED | TWOD));
+        _variablesWidget->hide();
+
+        ((QVBoxLayout *)layout())->insertWidget(1, pg = new PGroup);
+
+        PSection *vars = new PSection("Variable Selection");
+        vars->Add(new PDimensionSelector);
+        vars->Add(new PScalarVariableSelector);
+        pg->Add(vars);
+        pg->Add(new PFidelityWidget);
     }
 
-    void Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams) { _variablesWidget->Update(dataMgr, paramsMgr, rParams); }
+    void Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
+    {
+        //        _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+        pg->Update(rParams, paramsMgr, dataMgr);
+    }
 };
 
 class WireFrameAppearanceSubtab : public QWidget, public Ui_WireFrameAppearanceGUI {
