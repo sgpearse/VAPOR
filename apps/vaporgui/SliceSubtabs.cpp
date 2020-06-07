@@ -2,6 +2,8 @@
 #include "SliceSubtabs.h"
 #include "TFEditor.h"
 #include "VLineItem.h"
+#include "PGroup.h"
+#include "PVariablesWidget.h"
 
 #define MIN_SAMPLES         1
 #define MAX_SAMPLES         2000
@@ -26,13 +28,21 @@ SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
     connect(fidelityButtons, SIGNAL(buttonClicked(int)), this, SLOT(_setDefaultSampleRate()));
     QComboBox *refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
     connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
+
+    _variablesWidget->hide();
+    ((QVBoxLayout *)layout())->insertWidget(1, pg = new PGroup);
+    PSection *vars = new PSection("Variable Selection");
+    vars->Add(new PScalarVariableSelector);
+    pg->Add(vars);
+    pg->Add(new PFidelityWidget);
 }
 
 void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
 {
     _params = dynamic_cast<VAPoR::SliceParams *>(rParams);
     VAssert(_params);
-    _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+    //    _variablesWidget->Update(dataMgr, paramsMgr, rParams);
+    pg->Update(rParams, paramsMgr, dataMgr);
 }
 
 void SliceVariablesSubtab::_setDefaultSampleRate()

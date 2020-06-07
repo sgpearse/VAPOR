@@ -57,6 +57,7 @@ protected:
 //
 class FlowVariablesSubtab : public QVaporSubtab {
     Q_OBJECT
+    PGroup *pg;
 
 public:
     VariablesWidget *_variablesWidget;

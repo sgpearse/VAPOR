@@ -5,17 +5,6 @@
 using namespace VAPoR;
 
 // ==================================
-//      PFieldVariablesSelector
-// ==================================
-
-PFieldVariablesSelector::PFieldVariablesSelector()
-{
-    Add((new PVariableSelector(RenderParams::_xFieldVariableNameTag, "X"))->AddNullOption());
-    Add((new PVariableSelector(RenderParams::_yFieldVariableNameTag, "Y"))->AddNullOption());
-    Add((new PVariableSelector(RenderParams::_zFieldVariableNameTag, "Z"))->AddNullOption());
-}
-
-// ==================================
 //         PDimensionSelector
 // ==================================
 
@@ -41,7 +30,6 @@ void PDimensionSelector::dropdownTextChanged(std::string text)
     int           dim = text == "2D" ? 2 : 3;
 
     rp->BeginGroup("Change dim");
-
     if (dim == 2) {
         rp->GetBox()->SetPlanar(true);
         rp->GetBox()->SetOrientation(VAPoR::Box::XY);
@@ -50,7 +38,6 @@ void PDimensionSelector::dropdownTextChanged(std::string text)
         rp->GetBox()->SetOrientation(VAPoR::Box::XYZ);
     }
     rp->SetDefaultVariables(dim, true);
-
     rp->EndGroup();
 }
 
@@ -60,4 +47,11 @@ void PDimensionSelector::dropdownTextChanged(std::string text)
 
 PScalarVariableSelector::PScalarVariableSelector() : PVariableSelector(RenderParams::_variableNameTag, "Variable Name") {}
 PColorMapVariableSelector::PColorMapVariableSelector() : PVariableSelector(RenderParams::_colorMapVariableNameTag, "Color mapped variable") {}
-PHeightVariableSelector::PHeightVariableSelector() : PVariableSelector2D(RenderParams::_heightVariableNameTag, "Height variable") { AddNullOption(); }
+PHeightVariableSelector::PHeightVariableSelector() : PVariableSelector2D(RenderParams::_heightVariableNameTag, "Height variable")
+{
+    AddNullOption();
+    OnlyShowForDim(2);
+}
+PXFieldVariableSelector::PXFieldVariableSelector() : PVariableSelector(RenderParams::_xFieldVariableNameTag, "X") { AddNullOption(); }
+PYFieldVariableSelector::PYFieldVariableSelector() : PVariableSelector(RenderParams::_yFieldVariableNameTag, "Y") { AddNullOption(); }
+PZFieldVariableSelector::PZFieldVariableSelector() : PVariableSelector(RenderParams::_zFieldVariableNameTag, "Z") { AddNullOption(); }

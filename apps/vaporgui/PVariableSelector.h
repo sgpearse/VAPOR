@@ -13,6 +13,7 @@ class VCheckBox;
 class PVariableSelector : public PStringDropdown {
     Q_OBJECT
     bool _addNull = false;
+    int  _onlyShowForDim = -1;
 
 public:
     PVariableSelector(const std::string &tag, const std::string &label = "");
@@ -21,10 +22,17 @@ public:
         _addNull = true;
         return this;
     }
+    PVariableSelector *OnlyShowForDim(int dim)
+    {
+        _onlyShowForDim = dim;
+        return this;
+    }
 
 protected:
     void         updateGUI() const override;
+    bool         isShown() const override;
     bool         requireDataMgr() const override { return true; }
+    int          getRendererDimension() const;
     virtual int  getDimensionality() const;
     virtual void dropdownTextChanged(std::string text) override;
 };
