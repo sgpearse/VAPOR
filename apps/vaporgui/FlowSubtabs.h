@@ -30,6 +30,7 @@ class VFrame;
 class VIntSpinBox;
 class VGeometry2;
 class VPushButton;
+class PGroup;
 
 namespace VAPoR {
 class ControlExec;
@@ -56,6 +57,7 @@ protected:
 //
 class FlowVariablesSubtab : public QVaporSubtab {
     Q_OBJECT
+    PGroup *pg;
 
 public:
     VariablesWidget *_variablesWidget;
