@@ -21,6 +21,10 @@ public:
 
     virtual int Initialize() override;
 
+    void SetRefinementLevel(int level) override;
+
+    void SetCompressionLevel(int level) override;
+
     // Get static string identifier for this params class
     //
     static string GetClassType() { return ("SliceParams"); }
@@ -36,7 +40,9 @@ public:
     std::vector<double> GetCachedValues() const;
 
 private:
-    void                _init();
+    void _init();
+    void _setDefaultSampleRate();
+
     std::vector<double> _cachedValues;
 
     static const string _sampleRateTag;

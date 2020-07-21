@@ -22,39 +22,45 @@
 #define XZ 1
 #define YZ 2
 
-SliceVariablesSubtab::SliceVariablesSubtab(QWidget *parent)
-{
+/*SliceVariablesSubtab::SliceVariablesSubtab(QWidget* parent) {
     setupUi(this);
-    _variablesWidget->Reinit((VariableFlags)(SCALAR), (DimFlags)(THREED));
+    _variablesWidget->Reinit(
+        (VariableFlags)(SCALAR),
+        (DimFlags)(THREED)
+    );
 
-    QButtonGroup *fidelityButtons = _variablesWidget->_fidelityWidget->GetFidelityButtons();
-    connect(fidelityButtons, SIGNAL(buttonClicked(int)), this, SLOT(_setDefaultSampleRate()));
-    QComboBox *refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
-    connect(refinementCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(_setDefaultSampleRate()));
+    QButtonGroup* fidelityButtons = _variablesWidget->_fidelityWidget->GetFidelityButtons();
+    connect(fidelityButtons, SIGNAL(buttonClicked(int)),
+        this, SLOT(_setDefaultSampleRate()));
+    QComboBox* refinementCombo = _variablesWidget->_fidelityWidget->refinementCombo;
+    connect(refinementCombo, SIGNAL(currentIndexChanged(int)),
+        this, SLOT(_setDefaultSampleRate()));
 
     _variablesWidget->hide();
-    ((QVBoxLayout *)layout())->insertWidget(1, _pg = new PGroup);
+    ((QVBoxLayout*)layout())->insertWidget(1, _pg = new PGroup);
     PSection *vars = new PSection("Variable Selection");
-    vars->Add(new PScalarVariableSelectorHLI());
+    vars->Add( new PScalarVariableSelectorHLI() );
     _pg->Add(vars);
     _pg->Add(new PFidelitySection);
 }
 
-void SliceVariablesSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
-{
-    _params = dynamic_cast<VAPoR::SliceParams *>(rParams);
+void SliceVariablesSubtab::Update(
+    VAPoR::DataMgr *dataMgr,
+    VAPoR::ParamsMgr *paramsMgr,
+    VAPoR::RenderParams *rParams
+) {
+    _params = dynamic_cast<VAPoR::SliceParams*>(rParams);
     VAssert(_params);
     _pg->Update(rParams, paramsMgr, dataMgr);
 }
 
-void SliceVariablesSubtab::_setDefaultSampleRate()
-{
-    int defaultRate = _params->GetDefaultSampleRate();
-    int quality = defaultRate / SAMPLES_PER_QUALITY;
+void SliceVariablesSubtab::_setDefaultSampleRate() {
+    int defaultRate  = _params->GetDefaultSampleRate();
+    int quality      = defaultRate / SAMPLES_PER_QUALITY;
     if (quality < 1) quality = 1;
     int adjustedRate = quality * SAMPLES_PER_QUALITY;
     _params->SetSampleRate(adjustedRate);
-}
+}*/
 
 SliceAppearanceSubtab::SliceAppearanceSubtab(QWidget *parent)
 {
@@ -72,8 +78,9 @@ SliceAppearanceSubtab::SliceAppearanceSubtab(QWidget *parent)
 
 void SliceAppearanceSubtab::_qualityChanged(int quality)
 {
-    int sampleRate = quality * SAMPLES_PER_QUALITY;
-    _params->SetSampleRate(sampleRate);
+    // int sampleRate = quality * SAMPLES_PER_QUALITY;
+    std::cout << "void SliceAppearanceSubtab::_qualityChanged " << quality << std::endl;
+    _params->SetSampleRate(quality);
 }
 
 void SliceAppearanceSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
