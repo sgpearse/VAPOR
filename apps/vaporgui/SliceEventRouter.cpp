@@ -33,14 +33,6 @@ static RenderEventRouterRegistrar<SliceEventRouter> registrar(SliceEventRouter::
 
 SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidget(parent), RenderEventRouter(ce, SliceParams::GetClassType())
 {
-    /*_variables = new SliceVariablesSubtab(this);
-    QScrollArea *qsvar = new QScrollArea(this);
-    qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    _variables->adjustSize();
-    qsvar->setWidget(_variables);
-    qsvar->setWidgetResizable(true);
-    addTab(qsvar, "Variables");*/
-
     PSection *varSection = new PSection("Variable Selection");
     // varSection->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
     varSection->Add(new PScalarVariableSelector3DHLI());
@@ -125,13 +117,6 @@ void SliceEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
 
 void SliceEventRouter::_updateTab()
 {
-    // The variable tab updates itself:
-    //
-    /*_variables->Update(
-        GetActiveDataMgr(),
-        _controlExec->GetParamsMgr(),
-        GetActiveParams()
-    );*/
     _pVarGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
 
     _appearance->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
