@@ -78,9 +78,9 @@ SliceAppearanceSubtab::SliceAppearanceSubtab(QWidget *parent)
 
 void SliceAppearanceSubtab::_qualityChanged(int quality)
 {
-    // int sampleRate = quality * SAMPLES_PER_QUALITY;
+    int sampleRate = quality * SAMPLES_PER_QUALITY;
     std::cout << "void SliceAppearanceSubtab::_qualityChanged " << quality << std::endl;
-    _params->SetSampleRate(quality);
+    _params->SetSampleRate(sampleRate);
 }
 
 void SliceAppearanceSubtab::Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)

@@ -37,6 +37,28 @@ SliceParams::SliceParams(DataMgr *dataMgr, ParamsBase::StateSave *ssave, XmlNode
 
 SliceParams::~SliceParams() { SetDiagMsg("SliceParams::~SliceParams() this=%p", this); }
 
+void SliceParams::SetCompressionLevel(int level)
+{
+    std::cout << "void SliceParams::SetCompressiontLevel( " << level << std::endl;
+    BeginGroup("SliceParams: Change compression level and sample rate");
+    RenderParams::SetCompressionLevel(level);
+    // SetValueLong( _CompressionLevelTag, "Set compression level", level);
+    //_setDefaultSampleRate();
+    SetSampleRate(GetDefaultSampleRate());
+    EndGroup();
+}
+
+void SliceParams::SetRefinementLevel(int level)
+{
+    std::cout << "void SliceParams::SetRefinementLevel( " << level << std::endl;
+    BeginGroup("SliceParams: Change refinement level and sample rate");
+    RenderParams::SetRefinementLevel(level);
+    // SetValueLong( _RefinementLevelTag, "Set compression level", level);
+    //_setDefaultSampleRate();
+    SetSampleRate(GetDefaultSampleRate());
+    EndGroup();
+}
+
 void SliceParams::_init()
 {
     SetDiagMsg("SliceParams::_init()");
@@ -64,34 +86,6 @@ int SliceParams::Initialize()
     return (0);
 }
 
-void SliceParams::SetCompressionLevel(int level)
-{
-    std::cout << "void SliceParams::SetCompressiontLevel( " << level << std::endl;
-    BeginGroup("SliceParams: Change compression level and sample rate");
-    SetValueLong(_CompressionLevelTag, "Set compression level", level);
-    _setDefaultSampleRate();
-    EndGroup();
-}
-
-void SliceParams::SetRefinementLevel(int level)
-{
-    std::cout << "void SliceParams::SetRefinementLevel( " << level << std::endl;
-    BeginGroup("SliceParams: Change refinement level and sample rate");
-    SetValueLong(_RefinementLevelTag, "Set compression level", level);
-    _setDefaultSampleRate();
-    EndGroup();
-}
-
-void SliceParams::_setDefaultSampleRate()
-{
-    int defaultRate = GetDefaultSampleRate();
-    int quality = defaultRate / MIN_DEFAULT_SAMPLERATE;
-    if (quality < 1) quality = 1;
-    int adjustedRate = quality * MIN_DEFAULT_SAMPLERATE;
-    SetSampleRate(adjustedRate);
-    std::cout << "Sample rate changed to " << adjustedRate << std::endl;
-}
-
 int SliceParams::GetDefaultSampleRate() const
 {
     string         varName = GetVariableName();
@@ -113,7 +107,7 @@ int SliceParams::GetSampleRate() const
 
 void SliceParams::SetSampleRate(int rate)
 {
-    std::cout << "SetSampleRate " << rate << std::endl;
+    std::cout << "SetSampleRate() " << rate << std::endl;
     SetValueDouble(_sampleRateTag, "Set sample rate", (double)rate);
 }
 
