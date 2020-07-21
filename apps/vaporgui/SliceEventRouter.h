@@ -16,6 +16,7 @@ namespace VAPoR {
 class ControlExec;
 }
 
+class PGroup;
 class GLSliceImageWindow;
 
 //!
@@ -41,7 +42,8 @@ public:
     static string GetClassType() { return (VAPoR::SliceRenderer::GetClassType()); }
     string        GetType() const { return GetClassType(); }
 
-    virtual DimFlags GetDimFlags() const { return _variables->_variablesWidget->GetDimFlags(); }
+    virtual bool Supports2DVariables() const { return false; }
+    virtual bool Supports3DVariables() const { return true; }
 
 protected:
     void           _updateTab();
@@ -60,7 +62,8 @@ private:
     void wheelEvent(QWheelEvent *) {}
 
     //! VariablesWidget is used as Variables tab
-    SliceVariablesSubtab * _variables;
+    // SliceVariablesSubtab *_variables;
+    PGroup *               _pVarGroup;
     SliceGeometrySubtab *  _geometry;
     GLSliceImageWindow *   _glSliceImageWindow;
     SliceAppearanceSubtab *_appearance;

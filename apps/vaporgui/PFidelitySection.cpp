@@ -1,4 +1,4 @@
-#include "PFidelityWidget.h"
+#include "PFidelitySection.h"
 #include "VComboBox.h"
 #include "PCheckbox.h"
 #include <vapor/RenderParams.h>
@@ -6,10 +6,10 @@
 using namespace VAPoR;
 
 // ==================================
-//          PFidelityWidget
+//          PFidelitySection
 // ==================================
 
-PFidelityWidget::PFidelityWidget() : PSection("Data Fidelity")
+PFidelitySection::PFidelitySection() : PSection("Data Fidelity")
 {
     Add(new PQuickFidelitySelector);
     Add(new PCheckbox("FidelityUseAdvanced", "Advanced"));

@@ -9,6 +9,7 @@
 #include <TFEditor.h>
 #include "PGroup.h"
 #include "PVariablesWidget.h"
+#include "PFidelitySection.h"
 
 namespace VAPoR {
 class ControlExec;
@@ -32,7 +33,7 @@ public:
         vars->Add(new PScalarVariableSelectorHLI);
         vars->Add(new PHeightVariableSelectorHLI);
         pg->Add(vars);
-        pg->Add(new PFidelityWidget);
+        pg->Add(new PFidelitySection);
     }
 
     void Update(VAPoR::DataMgr *dataMgr, VAPoR::ParamsMgr *paramsMgr, VAPoR::RenderParams *rParams)
