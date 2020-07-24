@@ -16,6 +16,7 @@ namespace VAPoR {
 class ControlExec;
 }
 
+class PGroup;
 class GLWireFrameImageWindow;
 
 //!
@@ -55,6 +56,8 @@ protected:
 private:
     WireFrameEventRouter() {}
 
+    PGroup *_pVarGroup;
+
     //! Override default wheel behavior on the tab.  This has the effect of
     //! ignoring wheel events over the tab.  This is because wheel events will always
     //! affect the combo boxes and other widgets in the tab, and it would be confusing
@@ -62,7 +65,6 @@ private:
     void wheelEvent(QWheelEvent *) {}
 
     //! VariablesWidget is used as Variables tab
-    WireFrameVariablesSubtab * _variables;
     WireFrameGeometrySubtab *  _geometry;
     GLWireFrameImageWindow *   _glWireFrameImageWindow;
     WireFrameAppearanceSubtab *_appearance;
