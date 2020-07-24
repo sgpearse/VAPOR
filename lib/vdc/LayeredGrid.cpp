@@ -29,7 +29,12 @@ void LayeredGrid::_layeredGrid(const vector<double> &minu, const vector<double> 
     // Coordinates for horizontal dimensions
     //
     vector<size_t> dims = GetDimensions();
-    for (int i = 0; i < _minu.size(); i++) { _delta.push_back((_maxu[i] - _minu[i]) / (double)(dims[i] - 1)); }
+    for (int i = 0; i < _minu.size(); i++) {
+        if (dims[i] < 2)
+            _delta.push_back(0.0);
+        else
+            _delta.push_back((_maxu[i] - _minu[i]) / (double)(dims[i] - 1));
+    }
 
     // Get extents of layered dimension
     //
@@ -330,9 +335,15 @@ bool LayeredGrid::GetIndicesCell(const std::vector<double> &coords, std::vector<
 
         if (clampedCoords[i] < _minu[i] || clampedCoords[i] > _maxu[i]) { return (false); }
 
-        if (_delta[i] != 0.0) { indices[i] = (size_t)floor((clampedCoords[i] - _minu[i]) / _delta[i]); }
+        if (_delta[i] != 0.0) {
+            indices[i] = (size_t)floor((clampedCoords[i] - _minu[i]) / _delta[i]);
 
-        VAssert(indices[i] < dims[i]);
+            // Edge case
+            //
+            if (indices[i] == dims[i] - 1) indices[i]--;
+        }
+
+        VAssert((indices[i] < dims[i] - 1) || (indices[i] == 0 && dims[i] == 1));
     }
 
     // Now find index for layered grid
