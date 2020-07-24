@@ -29,18 +29,10 @@ static RenderEventRouterRegistrar<ContourEventRouter> registrar(ContourEventRout
 
 ContourEventRouter::ContourEventRouter(QWidget *parent, ControlExec *ce) : QTabWidget(parent), RenderEventRouter(ce, ContourParams::GetClassType())
 {
-    PSection *varSection = new PSection("Variable Selection");
-    varSection->Add(new PScalarVariableSelector2DHLI());
-    varSection->Add(new PHeightVariableSelectorHLI());
-    _pVarGroup = new PGroup;
-    _pVarGroup->Add(varSection);
-    _pVarGroup->Add(new PFidelitySection);
-    QScrollArea *qsvar = new QScrollArea(this);
-    qsvar->setWidgetResizable(true);
-    qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    qsvar->setWidget(_pVarGroup);
-    qsvar->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-    addTab(qsvar, "Variables");
+    // PVariablesGroup Methodoligy
+    _pvg->AddVar(new PScalarVariableSelector2DHLI);
+    _pvg->AddVar(new PHeightVariableSelectorHLI);
+    addTab(_pvg->GetScrollArea(), "Variables");
 
     _appearance = new ContourAppearanceSubtab(this);
     QScrollArea *qsapp = new QScrollArea(this);
@@ -88,7 +80,7 @@ void ContourEventRouter::_initializeTab()
 
 void ContourEventRouter::_updateTab()
 {
-    _pVarGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
+    _pvg->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
 
     _appearance->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
 

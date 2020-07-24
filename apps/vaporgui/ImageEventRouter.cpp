@@ -4,12 +4,13 @@
 
 #include <vapor/glutil.h>
 #include <vapor/ImageParams.h>
-// #include <vapor/ImageRenderer.h>
 #include <ImageEventRouter.h>
 #include <EventRouter.h>
 #include <qlineedit.h>
 #include <QFileDialog>
 #include <qscrollarea.h>
+
+#include "PVariableWidgets.h"
 
 using namespace VAPoR;
 
@@ -22,14 +23,8 @@ ImageEventRouter::ImageEventRouter(QWidget *parent, ControlExec *ce) : QTabWidge
 {
     sizePolicy().setVerticalPolicy(QSizePolicy::Maximum);
 
-    _variables = new ImageVariablesSubtab(this);
-    QScrollArea *qsvar = new QScrollArea(this);
-    qsvar->sizePolicy().setVerticalPolicy(QSizePolicy::Maximum);
-    qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    _variables->adjustSize();
-    qsvar->setWidget(_variables);
-    qsvar->setWidgetResizable(true);
-    addTab(qsvar, "Variables");
+    _pvg->AddVar(new PHeightVariableSelectorHLI);
+    addTab(_pvg->GetScrollArea(), "Variables");
 
     _appearance = new ImageAppearanceSubtab(this);
     QScrollArea *qsapp = new QScrollArea(this);
@@ -50,7 +45,7 @@ void ImageEventRouter::GetWebHelp(vector<pair<string, string>> &help) const { he
 
 void ImageEventRouter::_updateTab()
 {
-    _variables->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
+    _pvg->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
 
     _appearance->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
     _geometry->Update(_controlExec->GetParamsMgr(), GetActiveDataMgr(), GetActiveParams());

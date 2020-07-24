@@ -68,9 +68,7 @@ private:
     //! it would be confusing if wheel events also scrolled the tab itself
     void wheelEvent(QWheelEvent *) {}
 
-    PGroup *         _pVarGroup;
-    PVariablesGroup *_vw;
-
+    PGroup *              _pVarGroup;
     BarbGeometrySubtab *  _geometry;
     BarbAppearanceSubtab *_appearance;
     BarbAnnotationSubtab *_annotation;
