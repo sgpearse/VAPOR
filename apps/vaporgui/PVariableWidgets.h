@@ -1,13 +1,16 @@
 #pragma once
 
+#include <QScrollArea>
+
 #include "vapor/RenderParams.h"
 
-//#include "PVariableWidgets.h"
 #include "PStringDropdown.h"
 #include "PLineItem.h"
 #include "PWidgetHLI.h"
+#include "PGroup.h"
 
 class VComboBox;
+class PSection;
 
 class PDimensionSelector : public PLineItem {
     Q_OBJECT
@@ -109,6 +112,19 @@ public:
 class PZFieldVariableSelector : public PVariableSelector {
 public:
     PZFieldVariableSelector();
+};
+
+class PVariablesGroup : public PGroup {
+public:
+    PVariablesGroup();
+
+    void AddVar(PWidget *pw);
+
+    QScrollArea *GetScrollArea() const;
+
+private:
+    PSection *   _varSection;
+    QScrollArea *_scrollArea;
 };
 
 // ==================================

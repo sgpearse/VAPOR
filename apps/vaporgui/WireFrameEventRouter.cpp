@@ -32,7 +32,6 @@ WireFrameEventRouter::WireFrameEventRouter(QWidget *parent, ControlExec *ce) : Q
     _pVarGroup = new PGroup;
     _pVarGroup->Add(varSection);
     _pVarGroup->Add(fidelitySection);
-    _pVarGroup->AddStretch();
     QScrollArea *qsvar = new QScrollArea(this);
     qsvar->setWidgetResizable(true);
     qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

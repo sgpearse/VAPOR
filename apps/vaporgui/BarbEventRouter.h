@@ -18,6 +18,7 @@ class ControlExec;
 
 class GLBarbImageWindow;
 class PGroup;
+class PVariablesGroup;
 
 //!
 //! \class BarbEventRouter
@@ -67,7 +68,8 @@ private:
     //! it would be confusing if wheel events also scrolled the tab itself
     void wheelEvent(QWheelEvent *) {}
 
-    PGroup *_pVarGroup;
+    PGroup *         _pVarGroup;
+    PVariablesGroup *_vw;
 
     BarbGeometrySubtab *  _geometry;
     BarbAppearanceSubtab *_appearance;
