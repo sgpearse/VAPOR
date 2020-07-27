@@ -25,19 +25,9 @@ static RenderEventRouterRegistrar<WireFrameEventRouter> registrar(WireFrameEvent
 
 WireFrameEventRouter::WireFrameEventRouter(QWidget *parent, ControlExec *ce) : QTabWidget(parent), RenderEventRouter(ce, WireFrameParams::GetClassType())
 {
-    PSection *varSection = new PSection("Variable Selection");
-    varSection->Add(new PDimensionSelector());
-    varSection->Add(new PScalarVariableSelectorHLI());
-    PFidelitySection *fidelitySection = new PFidelitySection();
-    _pVarGroup = new PGroup;
-    _pVarGroup->Add(varSection);
-    _pVarGroup->Add(fidelitySection);
-    QScrollArea *qsvar = new QScrollArea(this);
-    qsvar->setWidgetResizable(true);
-    qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    qsvar->setWidget(_pVarGroup);
-    qsvar->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-    addTab(qsvar, "Variables");
+    _variablesGroup->AddVar(new PDimensionSelector);
+    _variablesGroup->AddVar(new PScalarVariableSelectorHLI);
+    addTab(_variablesGroup->GetScrollArea(), "Variables");
 
     _appearance = new WireFrameAppearanceSubtab(this);
     QScrollArea *qsapp = new QScrollArea(this);
@@ -78,7 +68,7 @@ void WireFrameEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
 
 void WireFrameEventRouter::_updateTab()
 {
-    _pVarGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
+    _variablesGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
 
     _appearance->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
 

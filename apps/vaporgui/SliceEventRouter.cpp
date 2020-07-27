@@ -33,17 +33,8 @@ static RenderEventRouterRegistrar<SliceEventRouter> registrar(SliceEventRouter::
 
 SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : QTabWidget(parent), RenderEventRouter(ce, SliceParams::GetClassType())
 {
-    PSection *varSection = new PSection("Variable Selection");
-    varSection->Add(new PScalarVariableSelector3DHLI());
-    _pVarGroup = new PGroup;
-    _pVarGroup->Add(varSection);
-    _pVarGroup->Add(new PFidelitySection);
-    QScrollArea *qsvar = new QScrollArea(this);
-    qsvar->setWidgetResizable(true);
-    qsvar->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    qsvar->setWidget(_pVarGroup);
-    qsvar->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-    addTab(qsvar, "Variables");
+    _variablesGroup->AddVar(new PScalarVariableSelectorHLI);
+    addTab(_variablesGroup->GetScrollArea(), "Variables");
 
     _appearance = new SliceAppearanceSubtab(this);
     QScrollArea *qsapp = new QScrollArea(this);
@@ -112,7 +103,7 @@ void SliceEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
 
 void SliceEventRouter::_updateTab()
 {
-    _pVarGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
+    _variablesGroup->Update(GetActiveParams(), _controlExec->GetParamsMgr(), GetActiveDataMgr());
 
     _appearance->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
     _geometry->Update(_controlExec->GetParamsMgr(), GetActiveDataMgr(), GetActiveParams());
