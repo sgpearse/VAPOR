@@ -38,6 +38,8 @@ public:
     static string GetClassType() { return (VAPoR::FlowRenderer::GetClassType()); }
     string        GetType() const { return GetClassType(); }
 
+    virtual DimFlags GetDimFlags() const { return _variables->_variablesWidget->GetDimFlags(); }
+
     virtual bool Supports2DVariables() const { return true; }
     virtual bool Supports3DVariables() const { return true; }
 
@@ -58,7 +60,7 @@ private:
     void wheelEvent(QWheelEvent *) {}
 
     //! VariablesWidget is used as Variables tab
-    PGroup *              _pVarGroup;
+    FlowVariablesSubtab * _variables;
     FlowGeometrySubtab *  _geometry;
     FlowAppearanceSubtab *_appearance;
     FlowSeedingSubtab *   _seeding;
