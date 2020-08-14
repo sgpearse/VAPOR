@@ -85,6 +85,7 @@ std::string Wasp::GetAppPath(const string &app, const string &resource, const ve
     oss << "GetAppPath(" << app << ", " << myResource;
     for (int i = 0; i < paths.size(); i++) { oss << ", " << paths[i]; }
     oss << ")" << endl;
+    std::cout << oss.str() << std::endl;
     MyBase::SetDiagMsg("%s", oss.str().c_str());
 
     string separator, otherSeparator;
