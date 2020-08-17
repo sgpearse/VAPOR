@@ -135,6 +135,7 @@ private:
     //
     QAction *_dataImportWRF_Action;
     QAction *_dataImportCF_Action;
+    QAction *_dataImportHDF5_Action;
     QAction *_dataImportMPAS_Action;
     QAction *_dataLoad_MetafileAction;
     QAction *_dataClose_MetafileAction;
@@ -316,6 +317,7 @@ private slots:
     void closeData(string fileName = "");
     void importWRFData();
     void importCFData();
+    void importHDF5Data();
     void importMPASData();
     void sessionNew();
     void captureJpegSequence();
