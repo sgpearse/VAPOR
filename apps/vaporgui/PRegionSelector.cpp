@@ -1,3 +1,4 @@
+#include <cassert>
 #include "PRegionSelector.h"
 #include "QRangeSliderTextCombo.h"
 #include "VLineItem.h"

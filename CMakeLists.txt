@@ -44,11 +44,14 @@ if (APPLE)
 	add_definitions (-DDarwin)
 elseif (WIN32)
 	add_definitions (-DWIN32 -DNOMINMAX)
+elseif (UNIX AND NOT APPLE)
+        set(OpenGL_GL_PREFERENCE GLVND)  # Prefer modern OpenGL, not legacy if both are available
 endif()
 
 # compiler warning flags
 if (NOT WIN32)
-  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare -Wno-overloaded-virtual -Wno-parentheses")
+  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare -Wno-overloaded-virtual")
+  #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare -Wno-overloaded-virtual -static-libstdc++")
   SET (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Wno-sign-compare")
 else ()
   # Enable multithread compiling on Visual Studio
