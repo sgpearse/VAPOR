@@ -50,37 +50,34 @@ void ReadMelanie(const char *name,    // input:  filename
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
         std::cout << "foo " << entry.path() << std::endl;
         file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-        hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
-        hid_t merPosSet = H5Dopen(file, "Position", H5P_DEFAULT);
 
+        hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
         int   rank = H5Sget_simple_extent_ndims(dataspace);
         int   status_n = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
         int   pCount = H5Sget_simple_extent_npoints(dataspace);
         printf("rank %d, dimensions %lu, pCount %d \n", rank, (unsigned long)(dims_out), pCount);
 
+        int merSize[pCount];
+        status = H5Dread(merSizeSet, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, merSize);
+
+        for (int i = 0; i < pCount; i++) { std::cout << "mer " << i << " " << merSize[i] << std::endl; }
+
+        hid_t merPosSet = H5Dopen(file, "Position", H5P_DEFAULT);
         dataspace = H5Dget_space(merPosSet); /* dataspace handle */
         rank = H5Sget_simple_extent_ndims(dataspace);
         status_n = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
-        pCount = H5Sget_simple_extent_npoints(dataspace);
+        // pCount    = H5Sget_simple_extent_npoints( dataspace );
         printf("rank %d, dimensions %lu, pCount %d \n", rank, (unsigned long)(dims_out), pCount);
 
-        int merSize[pCount];
+        double position[pCount * 3];
+        status = H5Dread(merPosSet, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, position);
 
-        /*
-         * Read the data using the default properties.
-         */
-        status = H5Dread(merSizeSet, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, merSize);
+        for (int i = 0; i < pCount; i++) { std::cout << "mer " << i << " " << position[i * 3] << " " << position[i * 3 + 1] << " " << position[i * 3 + 2] << std::endl; }
 
         /*
          * Output the data to the screen.
          */
-        /*printf ("\nData as written to disk by hyberslabs:\n");
-        for (int i=0; i<pCount; i++) {
-            printf (" [");
-            printf (" %3d", merSize[i]);
-            printf ("]\n");
-        }*/
     }
 
     /*FILE*  f  = fopen( name, "r" );
