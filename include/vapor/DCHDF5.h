@@ -9,6 +9,8 @@
 #include <vapor/utils.h>
 #include <vapor/DC.h>
 
+#include "hdf5.h"
+
 #pragma once
 
 namespace VAPoR {
@@ -195,5 +197,3 @@ private:
     //
 };
 };    // namespace VAPoR
-
-#endif

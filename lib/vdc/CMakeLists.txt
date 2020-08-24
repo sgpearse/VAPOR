@@ -19,6 +19,7 @@ set (SRC
 	DCWRF.cpp
 	DCCF.cpp
 	DCMPAS.cpp
+	DCHDF5.cpp
 	VDC.cpp
 	VDCNetCDF.cpp
 	DerivedVar.cpp
