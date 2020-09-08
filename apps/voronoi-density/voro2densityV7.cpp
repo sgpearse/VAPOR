@@ -15,13 +15,14 @@
 
 #include "hdf5.h"
 
-hsize_t foo[2] = {0, 1};
-
 #include "kdtree/nanoflann.hpp"
 
 #define GRIDX (512)
 #define GRIDY (512)
 #define GRIDZ (512)
+//#define GRIDX (16)
+//#define GRIDY (16)
+//#define GRIDZ (512)
 
 #define DIM0 16
 #define DIM1 16
@@ -42,68 +43,107 @@ void ReadMelanie(const char *name,    // input:  filename
                  UINT &      len,     // output: number of particles
                  float **    buf)         // output: (x, y, z) of each particle
 {
-    std::cout << name << std::endl;
+    herr_t status;
+    double maxX = 0;
+    double maxY = 0;
+    double maxZ = 0;
 
-    hid_t    file;    // file handle
-    hsize_t *dims_out;
-    herr_t   status;
+    // double binStart = 1.;
+    // double binEnd   = 5.;
+    double binStart = 15.;
+    double binEnd = 400.;
+
+    // Get number of particles within our current bin
+    len = 0;
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
-        std::cout << "foo " << entry.path() << std::endl;
-        file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
+        hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
-        int   rank = H5Sget_simple_extent_ndims(dataspace);
-        int   status_n = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
         int   pCount = H5Sget_simple_extent_npoints(dataspace);
-        printf("rank %d, dimensions %lu, pCount %d \n", rank, (unsigned long)(dims_out), pCount);
 
         int merSize[pCount];
         status = H5Dread(merSizeSet, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, merSize);
 
-        for (int i = 0; i < pCount; i++) { std::cout << "mer " << i << " " << merSize[i] << std::endl; }
+        for (int i = 0; i < pCount; i++) {
+            int size = merSize[i];
+            if (size >= binStart && size < binEnd) { len++; }
+        }
+
+        status = H5Fclose(file);
+        status = H5Sclose(dataspace);
+        status = H5Dclose(merSizeSet);
+    }
+
+    // Initialize buffer to hold XYZ coordinates
+    std::cout << "nParticles " << len << std::endl;
+    *buf = new float[len * 3];
+    int bufferIndex = 0;
+
+    // Populate buffer with XYZ coordinates
+    for (const auto &entry : std::filesystem::directory_iterator(name)) {
+        std::cout << entry.path().c_str() << std::endl;
+        hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
+        hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
+
+        // hsize_t* dims_out;
+        int rank = H5Sget_simple_extent_ndims(dataspace);
+        // int   status_n   = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+        int pCount = H5Sget_simple_extent_npoints(dataspace);
+        /*printf("rank %d, dimensions %lu, pCount %d \n",
+            rank,
+            (unsigned long)(dims_out),
+            pCount
+        );*/
+
+        int merSize[pCount];
+        status = H5Dread(merSizeSet, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, merSize);
 
         hid_t merPosSet = H5Dopen(file, "Position", H5P_DEFAULT);
         dataspace = H5Dget_space(merPosSet); /* dataspace handle */
         rank = H5Sget_simple_extent_ndims(dataspace);
-        status_n = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
-        // pCount    = H5Sget_simple_extent_npoints( dataspace );
-        printf("rank %d, dimensions %lu, pCount %d \n", rank, (unsigned long)(dims_out), pCount);
+        // status_n  = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+        /*printf("rank %d, dimensions %lu, pCount %d \n",
+            rank,
+            (unsigned long)(dims_out),
+            pCount
+        );*/
 
         double position[pCount * 3];
         status = H5Dread(merPosSet, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, position);
 
-        for (int i = 0; i < pCount; i++) { std::cout << "mer " << i << " " << position[i * 3] << " " << position[i * 3 + 1] << " " << position[i * 3 + 2] << std::endl; }
+        for (int i = 0; i < pCount; i++) {
+            // std::cout << entry.path() << " " << i << " " << merSize[i];
+            // std::cout << " " << position[i*3] << " " << position[i*3+1] << " " << position[i*3+2] << std::endl;
 
+            if (position[i * 3 + 2] > maxX) maxX = position[i * 3 + 2];
+            if (position[i * 3 + 1] > maxY) maxY = position[i * 3 + 1];
+            if (position[i * 3] > maxZ) maxZ = position[i * 3];
+
+            int size = merSize[i];
+            if (size >= binStart && size < binEnd) {
+                (*buf)[bufferIndex * 3] = (float)position[i * 3 + 2] / (2 * M_PI);
+                (*buf)[bufferIndex * 3 + 1] = (float)position[i * 3 + 1] / (2 * M_PI);
+                (*buf)[bufferIndex * 3 + 2] = (float)position[i * 3] / (2 * M_PI);
+                // std::cout << len << " " << bufferIndex << " " << (*buf)[ bufferIndex*3 ] << " " << (*buf)[ bufferIndex*3+1 ] << " " << (*buf)[ bufferIndex*3+2 ] << std::endl;
+                bufferIndex++;
+            }
+        }
+
+        status = H5Fclose(file);
+        status = H5Sclose(dataspace);
+        status = H5Dclose(merSizeSet);
+        status = H5Dclose(merPosSet);
         /*
          * Output the data to the screen.
          */
     }
 
-    /*FILE*  f  = fopen( name, "r" );
-    fseek( f, 0, SEEK_END );
-    long int totalByte = ftell( f );
-    assert( totalByte % 20 == 0 );      // Every 20 byte represents one particle
-    len =   totalByte / 20;
-    rewind( f );
+    // std::cout << maxZ << " " << maxY << " " << maxX << std::endl;
 
-    // First, read in all the values, each particle is represented by (id, x, y, z, r)
-    float* inputBuf = new float[ totalByte / 4 ];
-    size_t rt = fread( inputBuf, 4, totalByte / 4, f );
-    fclose( f );
-    assert( rt == totalByte / 4 );
-
-    // Second, extract all the (x, y, z) tuples
-    // !! For a grid size of 512, we also multiply the coordinate (x, y, z) by 4 !!
-    *buf = new float[ len * 3 ];
-    for( UINT i = 0; i < len; i++ )
-    {
-        memcpy( (*buf) + i * 3, inputBuf + i * 5 + 1, sizeof(float) * 3 );
-        for( int j = 0; j < 3; j++ )
-            (*buf)[ i * 3 + j ] *= 5.0f;
-    }
-
-    delete[] inputBuf;*/
+    // for ( int i=0; i<len; i++ ) {
+    //    std::cout << len << " " << i << " " << (*buf)[i*3] << " " << (*buf)[i*3+1] << " " << (*buf)[i*3+2] << std::endl;
+    //}
 }
 
 // Specialized method to 1) read in, and 2) process Bipin's data.
@@ -192,7 +232,7 @@ int main(int argc, char **argv)
     float *ptcBuf = nullptr;
     // ReadBipin( argv[1], nParticles, &ptcBuf );
     ReadMelanie(argv[1], nParticles, &ptcBuf);
-    exit(0);
+    // exit(0);
     UINT nPtcToUse = nParticles;    // use a subset of particles for experiments
 
     // Put particles in a "PointCloud"
@@ -248,7 +288,7 @@ int main(int argc, char **argv)
     // Increase counters in serial
     for (UINT i = 0; i < totalGridPts; i++) counter[pcounter[i]]++;
 
-#ifdef DEBUG /**** print diagnostic info ****/
+    //#ifdef DEBUG  /**** print diagnostic info ****/
     // What's the total count all counters have?
     UINT total = 0;
     for (UINT i = 0; i < nPtcToUse; i++) total += counter[i];
@@ -265,7 +305,7 @@ int main(int argc, char **argv)
         UINT idx = (float)rand() / RAND_MAX * nPtcToUse;
         std::cout << "A random counter value: " << counter[idx] << std::endl;
     }
-#endif /**** finish printing diagnostic info ****/
+    //#endif  /**** finish printing diagnostic info ****/
 
     // Each grid point calculates its own density from either a mass of 1.0 or its helicity.
     float *contribution = new float[nPtcToUse];
