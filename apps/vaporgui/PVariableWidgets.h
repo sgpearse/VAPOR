@@ -66,7 +66,8 @@ protected:
 
 class PVariableSelector2D : public PVariableSelector {
 public:
-    using PVariableSelector::PVariableSelector;
+    // using PVariableSelector::PVariableSelector;
+    PVariableSelector2D(const std::string &tag, const std::string &label = "") : PVariableSelector(tag, label) { OnlyShowForDim(2); }
 
 protected:
     int getDimensionality() const override { return 2; }
@@ -78,7 +79,8 @@ protected:
 
 class PVariableSelector3D : public PVariableSelector {
 public:
-    using PVariableSelector::PVariableSelector;
+    // using PVariableSelector::PVariableSelector;
+    PVariableSelector3D(const std::string &tag, const std::string &label = "") : PVariableSelector(tag, label) { OnlyShowForDim(3); }
 
 protected:
     int getDimensionality() const override { return 3; }
@@ -129,7 +131,7 @@ public:
 class PScalarVariableSelector2DHLI : public PVariableSelector2D, public PWidgetHLIBase<VAPoR::RenderParams, std::string> {
 public:
     PScalarVariableSelector2DHLI()
-    : PVariableSelector2D("", "Variable Name"), PWidgetHLIBase<VAPoR::RenderParams, std::string>((PWidget *)this, &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName)
+    : PVariableSelector2D("", "2D Variable Name"), PWidgetHLIBase<VAPoR::RenderParams, std::string>((PWidget *)this, &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName)
     {
     }
 };
@@ -140,7 +142,7 @@ class PScalarVariableSelector3DHLI :
     public PWidgetHLIBase<VAPoR::RenderParams, std::string> {
 public:
     PScalarVariableSelector3DHLI()
-    : PVariableSelector3D("", "Variable Name"), PWidgetHLIBase<VAPoR::RenderParams, std::string>((PWidget *)this, &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName)
+    : PVariableSelector3D("", "3D Variable Name"), PWidgetHLIBase<VAPoR::RenderParams, std::string>((PWidget *)this, &VAPoR::RenderParams::GetVariableName, &VAPoR::RenderParams::SetVariableName)
     {
     }
 };

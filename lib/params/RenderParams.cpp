@@ -96,6 +96,7 @@ void RenderParams::SetDefaultVariables(int dim = 3, bool secondaryColormapVariab
     string colorVar = varname;
     if (secondaryColormapVariable) colorVar = _findVarStartingWithLetter(varnames, 't');
 
+    std::cout << "setting default var to " << varname << std::endl;
     SetColorMapVariableName(colorVar);
 }
 

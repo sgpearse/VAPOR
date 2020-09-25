@@ -71,6 +71,7 @@ void WireFrameEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
 
 void WireFrameEventRouter::_updateTab()
 {
+    std::cout << "          void WireFrameEventRouter::_updateTab(){ " << std::endl;
     // The variable tab updates itself:
     //
     _variables->Update(GetActiveDataMgr(), _controlExec->GetParamsMgr(), GetActiveParams());
