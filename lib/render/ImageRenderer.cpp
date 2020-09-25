@@ -428,8 +428,8 @@ unsigned char *ImageRenderer::_getImage(GeoImage *geoimage, size_t ts, string pr
 
     // Ugh. Hardcode maximum image size request
     //
-    const int maxWidthReq = 1024;
-    const int maxHeightReq = 1024;
+    const int maxWidthReq = 10240;
+    const int maxHeightReq = 10240;
 
     double pcsExtentsData[4];
     for (int i = 0; i < 4; i++) { pcsExtentsData[i] = pcsExtentsDataVec[i]; }
