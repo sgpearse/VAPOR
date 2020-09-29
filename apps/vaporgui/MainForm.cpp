@@ -1818,31 +1818,27 @@ bool MainForm::eventFilter(QObject *obj, QEvent *event)
 {
     VAssert(_controlExec && _vizWinMgr);
 
-    /*if (_insideMessedUpQtEventLoop) {
+    if (_insideMessedUpQtEventLoop) {
         // Prevent menu item actions from running
-        if (event->type() == QEvent::MetaCall)
-            return true;
+        if (event->type() == QEvent::MetaCall) return true;
         // Prevent queued ParamsChangedEvents from recursively running
-        if (event->type() == ParamsChangeEvent)
-            return true;
-        if (event->type() == ParamsIntermediateChangeEvent)
-            return true;
+        if (event->type() == ParamsChangeEvent) return true;
+        if (event->type() == ParamsIntermediateChangeEvent) return true;
         // Prevent user input for all widgets except the cancel button. This is essentially
         // the same behavior as we had before because the application would
         // freeze during a render so all user input was essentially blocked.
         // Since the events are processed top-down, we need to check to check
         // if this is not only the cancel button, but any of its parents
         if (_disableUserInputForAllExcept != nullptr && obj->isWidgetType()) {
-            if (dynamic_cast<QInputEvent*>(event)) {
+            if (dynamic_cast<QInputEvent *>(event)) {
                 const QObject *test = _disableUserInputForAllExcept;
                 do {
-                    if (obj == test)
-                        return false; // Approve input
+                    if (obj == test) return false;    // Approve input
                 } while (test = test->parent());
-                return true; // Reject input
+                return true;    // Reject input
             }
         }
-    }*/
+    }
 
     // Only update the GUI if the Params state has changed
     //
