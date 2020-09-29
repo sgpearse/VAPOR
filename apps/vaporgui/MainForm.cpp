@@ -1817,12 +1817,13 @@ void MainForm::_setProj4String(string proj4String)
 bool MainForm::eventFilter(QObject *obj, QEvent *event)
 {
     VAssert(_controlExec && _vizWinMgr);
+
     if (_insideMessedUpQtEventLoop) {
         // Prevent menu item actions from running
-        if (event->type() == QEvent::MetaCall) { return true; }
+        if (event->type() == QEvent::MetaCall) return true;
         // Prevent queued ParamsChangedEvents from recursively running
-        if (event->type() == ParamsChangeEvent) { return true; }
-        if (event->type() == ParamsIntermediateChangeEvent) { return true; }
+        if (event->type() == ParamsChangeEvent) return true;
+        if (event->type() == ParamsIntermediateChangeEvent) return true;
         // Prevent user input for all widgets except the cancel button. This is essentially
         // the same behavior as we had before because the application would
         // freeze during a render so all user input was essentially blocked.
@@ -1832,9 +1833,7 @@ bool MainForm::eventFilter(QObject *obj, QEvent *event)
             if (dynamic_cast<QInputEvent *>(event)) {
                 const QObject *test = _disableUserInputForAllExcept;
                 do {
-                    if (obj == test) {
-                        return false;    // Approve input
-                    }
+                    if (obj == test) return false;    // Approve input
                 } while (test = test->parent());
                 return true;    // Reject input
             }
