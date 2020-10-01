@@ -24,10 +24,6 @@
 //#define GRIDY (16)
 //#define GRIDZ (512)
 
-#define DIM0 16
-#define DIM1 16
-#define DIM2 512
-
 using UINT = unsigned int;
 const UINT totalGridPts = (GRIDX) * (GRIDY) * (GRIDZ);
 
@@ -41,7 +37,8 @@ float CalcDist2(const float *p, const UINT *q)    // two points
 // Specialized method to 1) read in, and 2) process Bipin's data.
 void ReadMelanie(const char *name,    // input:  filename
                  UINT &      len,     // output: number of particles
-                 float **    buf)         // output: (x, y, z) of each particle
+                 float **    buf,     // output: (x, y, z) of each particle
+                 int binStart, int binEnd)
 {
     herr_t status;
     double maxX = 0;
@@ -50,12 +47,25 @@ void ReadMelanie(const char *name,    // input:  filename
 
     // double binStart = 1.;
     // double binEnd   = 5.;
-    double binStart = 15.;
-    double binEnd = 400.;
+    // double binStart = 15.;
+    // double binEnd   = 400.;
 
     // Get number of particles within our current bin
     len = 0;
+    int              lastEntry = 56000;
+    std::vector<int> timesteps;
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
+        std::string filename = std::filesystem::path(entry.path().c_str()).filename();
+        // int newEntry = atoi( entry.path().c_str() );
+        //        int newEntry = std::stoi( filename );
+        //        timesteps.push_back( newEntry );
+        // std::cout << filename << " " << newEntry << std::endl;
+        // if ( newEntry - lastEntry < 0 )
+        //    std::cout << "      " << newEntry << " " << lastEntry << std::endl;
+
+        //        lastEntry = newEntry;
+
+        //        continue;
         hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
@@ -73,6 +83,17 @@ void ReadMelanie(const char *name,    // input:  filename
         status = H5Sclose(dataspace);
         status = H5Dclose(merSizeSet);
     }
+    sort(timesteps.begin(), timesteps.end());
+
+    /*    int i=0;
+    lastEntry = 56000;
+    for (auto x : timesteps ) {
+        if ( x - lastEntry < 0 )
+            std::cout << i << " " << x << " " << lastEntry << std::endl;
+        i++;
+        lastEntry = x;
+    }
+exit(0);*/
 
     // Initialize buffer to hold XYZ coordinates
     std::cout << "nParticles " << len << std::endl;
@@ -81,7 +102,7 @@ void ReadMelanie(const char *name,    // input:  filename
 
     // Populate buffer with XYZ coordinates
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
-        std::cout << entry.path().c_str() << std::endl;
+        // std::cout << entry.path().c_str() << std::endl;
         hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
@@ -122,9 +143,17 @@ void ReadMelanie(const char *name,    // input:  filename
 
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
-                (*buf)[bufferIndex * 3] = (float)position[i * 3 + 2] / (2 * M_PI);
-                (*buf)[bufferIndex * 3 + 1] = (float)position[i * 3 + 1] / (2 * M_PI);
-                (*buf)[bufferIndex * 3 + 2] = (float)position[i * 3] / (2 * M_PI);
+                float *inputBuf = new float[3];
+                inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI;
+                inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI;
+                inputBuf[2] = (float)position[i * 3] * 25 * M_PI;
+                //(*buf)[ bufferIndex*3   ] = (float)position[ i*3+2 ] / (2 * M_PI);
+                //(*buf)[ bufferIndex*3+1 ] = (float)position[ i*3+1 ] / (2 * M_PI);
+                //(*buf)[ bufferIndex*3+2 ] = (float)position[ i*3 ]   / (2 * M_PI);
+                //(*buf)[ bufferIndex*3   ] = (float)position[ i*3+2 ];
+                //(*buf)[ bufferIndex*3+1 ] = (float)position[ i*3+1 ];
+                //(*buf)[ bufferIndex*3+2 ] = (float)position[ i*3 ];
+                memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                 // std::cout << len << " " << bufferIndex << " " << (*buf)[ bufferIndex*3 ] << " " << (*buf)[ bufferIndex*3+1 ] << " " << (*buf)[ bufferIndex*3+2 ] << std::endl;
                 bufferIndex++;
             }
@@ -218,20 +247,24 @@ public:
 
 int main(int argc, char **argv)
 {
-    if (argc < 3 || argc > 4)    // has to be either 3 or 4
+    if (argc < 3 || argc > 5)    // has to be  5
     {
-        printf("Usage: ./a.out .lag(input) .float(output) use_helicity(optional)\n");
+        printf("Usage: ./a.out inputDir output.rawFile binStart binEnd\n");
         exit(1);
     }
     bool use_helicity = false;
-    if (argc == 4) use_helicity = true;
+    // if( argc == 4 )
+    //    use_helicity  = true;
     struct timeval start, end;
 
     // Read in particles
     UINT   nParticles;
     float *ptcBuf = nullptr;
     // ReadBipin( argv[1], nParticles, &ptcBuf );
-    ReadMelanie(argv[1], nParticles, &ptcBuf);
+    int binStart = atoi(argv[3]);
+    int binEnd = atoi(argv[4]);
+    std::cout << binStart << " " << binEnd << std::endl;
+    ReadMelanie(argv[1], nParticles, &ptcBuf, binStart, binEnd);
     // exit(0);
     UINT nPtcToUse = nParticles;    // use a subset of particles for experiments
 
