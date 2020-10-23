@@ -11,6 +11,7 @@
     #include <geo_normalize.h>
 #endif
 
+#include <vapor/TMSTools.h>
 #include <vapor/Proj4API.h>
 #include <vapor/GeoUtil.h>
 #include <vapor/GeoTileMercator.h>
@@ -50,17 +51,22 @@ GeoImageTMS::~GeoImageTMS()
     if (_geotile) delete _geotile;
 }
 
-bool GeoImageTMS::IsTMSFile(std::string path)
-{
-    if (path.rfind(".tms", path.size() - 4) != string::npos) { return true; }
+/*bool GeoImageTMS::IsTMSFile( std::string path ) {
+    if ( path.rfind(".tms", path.size()-4) != string::npos ) {
+        return true;
+    }
+#include <vapor/TMSTools.h>
     return false;
 }
 
-std::string GeoImageTMS::TilePath(string file, size_t tileX, size_t tileY, int lod)
-{
+std::string GeoImageTMS::TilePath(
+    string file, size_t tileX, size_t tileY, int lod
+) {
     // If we're given a file instead of a directory, remove the .tms extension
     //
-    if (file.rfind(".tms", file.size() - 4) != string::npos) { file.erase(file.length() - 4, 4); }
+    if ( file.rfind(".tms", file.size()-4) != string::npos ) {
+        file.erase( file.length()-4, 4 );
+    }
 
     size_t tmsTileY = tileY;
 
@@ -78,7 +84,7 @@ std::string GeoImageTMS::TilePath(string file, size_t tileX, size_t tileY, int l
     string path = base + ".tif";
 
     struct stat statbuf;
-    if (stat(path.c_str(), &statbuf) == 0) return (path);
+    if (stat(path.c_str(), &statbuf) == 0)  return(path);
 
     path = base + ".tiff";
 
@@ -86,15 +92,16 @@ std::string GeoImageTMS::TilePath(string file, size_t tileX, size_t tileY, int l
 
     // Tile does not exist
     //
-    return ("");
+    return("");
 }
 
-int GeoImageTMS::GetNumTMSLODs(std::string file)
-{
+int GeoImageTMS::GetNumTMSLODs( std::string file ) {
     int lod = 0;
-    while (TilePath(file, 0, 0, lod) != "") { lod++; }
+    while ( TilePath( file, 0, 0, lod ) != "" ) {
+        lod++;
+    }
     return lod;
-}
+}*/
 
 int GeoImageTMS::Initialize(string dir, vector<double> times)
 {
@@ -107,7 +114,7 @@ int GeoImageTMS::Initialize(string dir, vector<double> times)
 
     // Find the maximum available LOD in the TMS database.
     //
-    int lod = GetNumTMSLODs(_dir) - 1;
+    int lod = GetAvailableTMSLODs(_dir) - 1;
     if (lod < 0) {
         SetErrMsg("Failed to initialize TMS directory %s", _dir.c_str());
         return (-1);
