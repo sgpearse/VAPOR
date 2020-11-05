@@ -64,7 +64,7 @@ double VDoubleSliderEdit::GetValue() const { return _value; }
 
 void VDoubleSliderEdit::SetValue(double value)
 {
-    // std::cout << "SetValue " << value << " " << _value << std::endl;
+    std::cout << "SetValue " << value << " " << _value << std::endl;
     // If the new value is unchanged or illegal, reset _lineEdit's text and return
     if (
         // if ( value == _value ||
