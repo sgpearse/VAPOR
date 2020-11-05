@@ -61,7 +61,7 @@ int VIntSliderEdit::GetValue() const { return _value; }
 void VIntSliderEdit::SetValue(int value)
 {
     // If the new value is unchanged or illegal, reset _lineEdit and return
-    if (value == _value || value < _slider->GetMinimum() || value > _slider->GetMaximum()) {
+    if (value < _slider->GetMinimum() || value > _slider->GetMaximum()) {
         _lineEdit->SetValueInt(_value);
         return;
     }
