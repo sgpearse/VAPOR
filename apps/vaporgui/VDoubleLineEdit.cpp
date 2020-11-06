@@ -36,13 +36,11 @@ void VDoubleLineEdit::_valueChanged()
     double value;
     try {
         value = std::stod(str);
+        SetValueDouble(value);
 
-        // If value is changed, update the QLineEdit and emi
-        if (value != _value) {
-            SetValueDouble(value);
-            emit ValueChanged(_value);
-            std::cout << "VDoubleLineEdit::ValueChanged( " << value << " " << _value << std::endl;
-        }
+        // If value is changed, emit
+        //
+        if (value != _value) { emit ValueChanged(_value); }
     } catch (const std::invalid_argument &) {
         SetValueDouble(_value);
     } catch (const std::out_of_range &) {
