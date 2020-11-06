@@ -46,7 +46,6 @@ void VDoubleSliderEdit::SetSciNotation(bool value)
 {
     if (value == _lineEdit->GetSciNotation()) { return; }
     _lineEdit->SetSciNotation(value);
-    std::cout << "  VDoubleSliderEdit::FormatChanged( " << value << std::endl;
     emit FormatChanged();
 }
 
@@ -56,7 +55,6 @@ void VDoubleSliderEdit::SetNumDigits(int digits)
 {
     if (digits == _lineEdit->GetNumDigits()) { return; }
     _lineEdit->SetNumDigits(digits);
-    std::cout << "  VDoubleSliderEdit::FormatChanged( " << digits << std::endl;
     emit FormatChanged();
 }
 
@@ -64,7 +62,6 @@ double VDoubleSliderEdit::GetValue() const { return _value; }
 
 void VDoubleSliderEdit::SetValue(double value)
 {
-    std::cout << "VDoubleSliderEdit::SetValue " << value << " " << _value << std::endl;
     // If the new value is unchanged or illegal, reset _lineEdit's text and return
     if (
         // if ( value == _value ||
@@ -78,10 +75,7 @@ void VDoubleSliderEdit::SetValue(double value)
     _lineEdit->SetValueDouble(_value);
     _slider->SetValue(_value);
 
-    if (QObject::sender() != nullptr) {
-        std::cout << "  VDoubleSliderEdit::ValueChanged( " << _value << std::endl;
-        emit ValueChanged(_value);
-    }
+    if (QObject::sender() != nullptr) { emit ValueChanged(_value); }
 }
 
 double VDoubleSliderEdit::GetMinimum() const { return _slider->GetMinimum(); }
@@ -99,10 +93,7 @@ void VDoubleSliderEdit::SetMinimum(double min)
 
     // If sender() is a nullptr, then this fuction is being called from Update().
     // Don't emit anythong.  Otherwise, emit our signal.
-    if (QObject::sender() != nullptr) {
-        std::cout << "  VDoubleSliderEdit::MinimumChanged ( " << min << std::endl;
-        emit MinimumChanged(min);
-    }
+    if (QObject::sender() != nullptr) { emit MinimumChanged(min); }
 }
 
 double VDoubleSliderEdit::GetMaximum() const { return _slider->GetMaximum(); }
@@ -120,10 +111,7 @@ void VDoubleSliderEdit::SetMaximum(double max)
 
     // If sender() is a nullptr, then this fuction is being called from Update().
     // Don't emit anythong.  Otherwise, emit our signal.
-    if (QObject::sender() != nullptr) {
-        std::cout << "  VDoubleSliderEdit::MaximumChanged ( " << max << std::endl;
-        emit MaximumChanged(max);
-    }
+    if (QObject::sender() != nullptr) { emit MaximumChanged(max); }
 }
 
 void VDoubleSliderEdit::ShowContextMenu(const QPoint &pos)
