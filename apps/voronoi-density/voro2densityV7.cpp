@@ -17,15 +17,20 @@
 
 #include "kdtree/nanoflann.hpp"
 
-#define GRIDX (512)
-#define GRIDY (512)
-#define GRIDZ (512)
-//#define GRIDX (16)
-//#define GRIDY (16)
-//#define GRIDZ (512)
+#define GROW_THRESHOLD_1 3
+#define GROW_THRESHOLD_2 6
+#define GROW_THRESHOLD_3 9
+#define GROW_MULTIPLIER  16
+
+//#define 512 (512)
+//#define 512 (512)
+//#define 512 (512)
+//#define 512 (16)
+//#define 512 (16)
+//#define 512 (512)
 
 using UINT = unsigned int;
-const UINT totalGridPts = (GRIDX) * (GRIDY) * (GRIDZ);
+const UINT totalGridPts = (512) * (512) * (512);
 
 double GetElapsedSeconds(const struct timeval *begin, const struct timeval *end) { return (end->tv_sec - begin->tv_sec) + ((end->tv_usec - begin->tv_usec) / 1000000.0); }
 
@@ -56,16 +61,7 @@ void ReadMelanie(const char *name,    // input:  filename
     std::vector<int> timesteps;
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
         std::string filename = std::filesystem::path(entry.path().c_str()).filename();
-        // int newEntry = atoi( entry.path().c_str() );
-        //        int newEntry = std::stoi( filename );
-        //        timesteps.push_back( newEntry );
-        // std::cout << filename << " " << newEntry << std::endl;
-        // if ( newEntry - lastEntry < 0 )
-        //    std::cout << "      " << newEntry << " " << lastEntry << std::endl;
 
-        //        lastEntry = newEntry;
-
-        //        continue;
         hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
@@ -76,7 +72,17 @@ void ReadMelanie(const char *name,    // input:  filename
 
         for (int i = 0; i < pCount; i++) {
             int size = merSize[i];
-            if (size >= binStart && size < binEnd) { len++; }
+            if (size >= binStart && size < binEnd) {
+                if (size > GROW_THRESHOLD_3) {
+                    len += GROW_MULTIPLIER * 64;
+                } else if (size > GROW_THRESHOLD_2) {
+                    len += GROW_MULTIPLIER * 16;
+                } else if (size > GROW_THRESHOLD_1) {
+                    len += GROW_MULTIPLIER * 2;
+                } else {
+                    len++;
+                }
+            }
         }
 
         status = H5Fclose(file);
@@ -85,16 +91,6 @@ void ReadMelanie(const char *name,    // input:  filename
     }
     sort(timesteps.begin(), timesteps.end());
 
-    /*    int i=0;
-    lastEntry = 56000;
-    for (auto x : timesteps ) {
-        if ( x - lastEntry < 0 )
-            std::cout << i << " " << x << " " << lastEntry << std::endl;
-        i++;
-        lastEntry = x;
-    }
-exit(0);*/
-
     // Initialize buffer to hold XYZ coordinates
     std::cout << "nParticles " << len << std::endl;
     *buf = new float[len * 3];
@@ -102,20 +98,12 @@ exit(0);*/
 
     // Populate buffer with XYZ coordinates
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
-        // std::cout << entry.path().c_str() << std::endl;
         hid_t file = H5Fopen(entry.path().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         hid_t merSizeSet = H5Dopen(file, "Mer Size", H5P_DEFAULT);
         hid_t dataspace = H5Dget_space(merSizeSet); /* dataspace handle */
 
-        // hsize_t* dims_out;
         int rank = H5Sget_simple_extent_ndims(dataspace);
-        // int   status_n   = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
         int pCount = H5Sget_simple_extent_npoints(dataspace);
-        /*printf("rank %d, dimensions %lu, pCount %d \n",
-            rank,
-            (unsigned long)(dims_out),
-            pCount
-        );*/
 
         int merSize[pCount];
         status = H5Dread(merSizeSet, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, merSize);
@@ -123,39 +111,65 @@ exit(0);*/
         hid_t merPosSet = H5Dopen(file, "Position", H5P_DEFAULT);
         dataspace = H5Dget_space(merPosSet); /* dataspace handle */
         rank = H5Sget_simple_extent_ndims(dataspace);
-        // status_n  = H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
-        /*printf("rank %d, dimensions %lu, pCount %d \n",
-            rank,
-            (unsigned long)(dims_out),
-            pCount
-        );*/
 
         double position[pCount * 3];
         status = H5Dread(merPosSet, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, position);
 
         for (int i = 0; i < pCount; i++) {
-            // std::cout << entry.path() << " " << i << " " << merSize[i];
-            // std::cout << " " << position[i*3] << " " << position[i*3+1] << " " << position[i*3+2] << std::endl;
-
             if (position[i * 3 + 2] > maxX) maxX = position[i * 3 + 2];
             if (position[i * 3 + 1] > maxY) maxY = position[i * 3 + 1];
             if (position[i * 3] > maxZ) maxZ = position[i * 3];
 
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
-                float *inputBuf = new float[3];
-                inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI;
-                inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI;
-                inputBuf[2] = (float)position[i * 3] * 25 * M_PI;
-                //(*buf)[ bufferIndex*3   ] = (float)position[ i*3+2 ] / (2 * M_PI);
-                //(*buf)[ bufferIndex*3+1 ] = (float)position[ i*3+1 ] / (2 * M_PI);
-                //(*buf)[ bufferIndex*3+2 ] = (float)position[ i*3 ]   / (2 * M_PI);
-                //(*buf)[ bufferIndex*3   ] = (float)position[ i*3+2 ];
-                //(*buf)[ bufferIndex*3+1 ] = (float)position[ i*3+1 ];
-                //(*buf)[ bufferIndex*3+2 ] = (float)position[ i*3 ];
-                memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
-                // std::cout << len << " " << bufferIndex << " " << (*buf)[ bufferIndex*3 ] << " " << (*buf)[ bufferIndex*3+1 ] << " " << (*buf)[ bufferIndex*3+2 ] << std::endl;
-                bufferIndex++;
+                if (size > GROW_THRESHOLD_3) {
+                    int multiplier = GROW_MULTIPLIER * 64;
+                    for (int i = 0; i < multiplier; i++) {
+                        float *inputBuf = new float[3];
+                        inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
+                        inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
+                        inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
+                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
+                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
+                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
+                        memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
+                        bufferIndex++;
+                    }
+                } else if (size > GROW_THRESHOLD_2) {
+                    int multiplier = GROW_MULTIPLIER * 16;
+                    for (int i = 0; i < multiplier; i++) {
+                        float *inputBuf = new float[3];
+                        inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
+                        inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
+                        inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
+                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
+                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
+                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
+                        memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
+                        bufferIndex++;
+                    }
+                } else if (size > GROW_THRESHOLD_1) {
+                    int multiplier = GROW_MULTIPLIER * 2;
+                    for (int i = 0; i < multiplier; i++) {
+                        float *inputBuf = new float[3];
+                        inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
+                        inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
+                        inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
+                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
+                        bufferIndex++;
+                    }
+                } else {
+                    float *inputBuf = new float[3];
+                    inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI;
+                    inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI;
+                    inputBuf[2] = (float)position[i * 3] * 25 * M_PI;
+                    memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
+                    // std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
+                    bufferIndex++;
+                }
             }
         }
 
@@ -167,12 +181,7 @@ exit(0);*/
          * Output the data to the screen.
          */
     }
-
-    // std::cout << maxZ << " " << maxY << " " << maxX << std::endl;
-
-    // for ( int i=0; i<len; i++ ) {
-    //    std::cout << len << " " << i << " " << (*buf)[i*3] << " " << (*buf)[i*3+1] << " " << (*buf)[i*3+2] << std::endl;
-    //}
+    std::cout << "BufferIndex " << bufferIndex << std::endl;
 }
 
 // Specialized method to 1) read in, and 2) process Bipin's data.
@@ -291,7 +300,7 @@ int main(int argc, char **argv)
     // Find the closest particle for each grid point
     gettimeofday(&start, NULL);
 #pragma omp parallel for
-    for (UINT z = 0; z < GRIDZ; z++) {
+    for (UINT z = 0; z < 512; z++) {
         nanoflann::KNNResultSet<float, UINT> resultSet(1);
         UINT                                 ret_index;
         float                                out_dist_sqr;
@@ -299,10 +308,10 @@ int main(int argc, char **argv)
         struct timeval planeStart, planeEnd;
         gettimeofday(&planeStart, NULL);
 #endif
-        UINT zOffset = z * GRIDX * GRIDY;
-        for (UINT y = 0; y < GRIDY; y++) {
-            UINT yOffset = y * GRIDX + zOffset;
-            for (UINT x = 0; x < GRIDX; x++) {
+        UINT zOffset = z * 512 * 512;
+        for (UINT y = 0; y < 512; y++) {
+            UINT yOffset = y * 512 + zOffset;
+            for (UINT x = 0; x < 512; x++) {
                 resultSet.init(&ret_index, &out_dist_sqr);    // VERY IMPORTANT!!!
                 float g[3] = {(float)x, (float)y, (float)z};
                 bool  rt = kd_index.findNeighbors(resultSet, g, nanoflann::SearchParams());
@@ -351,11 +360,11 @@ int main(int argc, char **argv)
 
     float *density = new float[totalGridPts];
 #pragma omp parallel for
-    for (UINT z = 0; z < GRIDZ; z++) {
-        UINT zOffset = z * GRIDX * GRIDY;
-        for (UINT y = 0; y < GRIDY; y++) {
-            UINT yOffset = y * GRIDX + zOffset;
-            for (UINT x = 0; x < GRIDX; x++) {
+    for (UINT z = 0; z < 512; z++) {
+        UINT zOffset = z * 512 * 512;
+        for (UINT y = 0; y < 512; y++) {
+            UINT yOffset = y * 512 + zOffset;
+            for (UINT x = 0; x < 512; x++) {
                 UINT idx = x + yOffset;
                 UINT count = counter[pcounter[idx]];
                 density[idx] = contribution[pcounter[idx]] / (float)count;
@@ -373,9 +382,9 @@ int main(int argc, char **argv)
             // Distribute the contribution of this particle to its eight enclosing grid points.
             float ptc[3] = {ptcBuf[i * 3], ptcBuf[i * 3 + 1], ptcBuf[i * 3 + 2]};
             UINT  g0[3] = {(UINT)ptc[0], (UINT)ptc[1], (UINT)ptc[2]};    // grid indices
-            if (g0[0] == GRIDX) g0[0]--;
-            if (g0[1] == GRIDY) g0[1]--;
-            if (g0[2] == GRIDZ) g0[2]--;
+            if (g0[0] == 512) g0[0]--;
+            if (g0[1] == 512) g0[1]--;
+            if (g0[2] == 512) g0[2]--;
             UINT  g1[3] = {g0[0] + 1, g0[1], g0[2]};
             UINT  g2[3] = {g0[0], g0[1] + 1, g0[2]};
             UINT  g3[3] = {g0[0] + 1, g0[1] + 1, g0[2]};
@@ -387,14 +396,14 @@ int main(int argc, char **argv)
             float total = 0.0f;
             for (int j = 0; j < 8; j++) total += dist[j];
 
-            density[g0[2] * GRIDX * GRIDY + g0[1] * GRIDY + g0[0]] += c * dist[0] / total;
-            density[g1[2] * GRIDX * GRIDY + g1[1] * GRIDY + g1[0]] += c * dist[1] / total;
-            density[g2[2] * GRIDX * GRIDY + g2[1] * GRIDY + g2[0]] += c * dist[2] / total;
-            density[g3[2] * GRIDX * GRIDY + g3[1] * GRIDY + g3[0]] += c * dist[3] / total;
-            density[g4[2] * GRIDX * GRIDY + g4[1] * GRIDY + g4[0]] += c * dist[4] / total;
-            density[g5[2] * GRIDX * GRIDY + g5[1] * GRIDY + g5[0]] += c * dist[5] / total;
-            density[g6[2] * GRIDX * GRIDY + g6[1] * GRIDY + g6[0]] += c * dist[6] / total;
-            density[g7[2] * GRIDX * GRIDY + g7[1] * GRIDY + g7[0]] += c * dist[7] / total;
+            density[g0[2] * 512 * 512 + g0[1] * 512 + g0[0]] += c * dist[0] / total;
+            density[g1[2] * 512 * 512 + g1[1] * 512 + g1[0]] += c * dist[1] / total;
+            density[g2[2] * 512 * 512 + g2[1] * 512 + g2[0]] += c * dist[2] / total;
+            density[g3[2] * 512 * 512 + g3[1] * 512 + g3[0]] += c * dist[3] / total;
+            density[g4[2] * 512 * 512 + g4[1] * 512 + g4[0]] += c * dist[4] / total;
+            density[g5[2] * 512 * 512 + g5[1] * 512 + g5[0]] += c * dist[5] / total;
+            density[g6[2] * 512 * 512 + g6[1] * 512 + g6[0]] += c * dist[6] / total;
+            density[g7[2] * 512 * 512 + g7[1] * 512 + g7[0]] += c * dist[7] / total;
         }
     }
     std::cerr << "percentage of voronoi cell without a grid point: " << 100.0f * emptyCellCount / nPtcToUse << std::endl;
@@ -408,7 +417,7 @@ int main(int argc, char **argv)
     std::cerr << "writing density fields takes " << GetElapsedSeconds(&start, &end) << " seconds." << std::endl;
 
     delete[] density;
-    delete[] contribution;
+    // delete[] contribution;
     delete[] pcounter;
     delete[] counter;
     delete[] ptcBuf;
