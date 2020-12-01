@@ -112,7 +112,7 @@ auto VaporField::UnlockParams() -> int
     return 0;
 }
 
-bool VaporField::InsideVolumeVelocity(float time, const glm::vec3 &pos) const
+bool VaporField::InsideVolumeVelocity(double time, const glm::vec3 &pos) const
 {
     const std::array<double, 3> coords{pos.x, pos.y, pos.z};
     const VAPoR::Grid *         grid = nullptr;
@@ -162,7 +162,7 @@ bool VaporField::InsideVolumeVelocity(float time, const glm::vec3 &pos) const
     return true;
 }
 
-bool VaporField::InsideVolumeScalar(float time, const glm::vec3 &pos) const
+bool VaporField::InsideVolumeScalar(double time, const glm::vec3 &pos) const
 {
     // When this variable doesn't exist, it doesn't make sense to say if
     // a position is inside of the volume, so simply return true.
@@ -236,7 +236,7 @@ int VaporField::GetVelocityIntersection(size_t ts, glm::vec3 &minxyz, glm::vec3 
     return 0;
 }
 
-int VaporField::GetVelocity(float time, const glm::vec3 &pos, glm::vec3 &velocity) const
+int VaporField::GetVelocity(double time, const glm::vec3 &pos, glm::vec3 &velocity) const
 {
     const std::array<double, 3> coords{pos.x, pos.y, pos.z};
     const VAPoR::Grid *         grid = nullptr;
@@ -277,7 +277,7 @@ int VaporField::GetVelocity(float time, const glm::vec3 &pos, glm::vec3 &velocit
         VAssert(rv == 0);
 
         // Find the velocity values at floor time step
-        glm::vec3 floorVelocity, ceilVelocity;
+        glm::vec3 floorVelocity, ceilingVelocity;
         for (int i = 0; i < 3; i++) {
             grid = _getAGrid(floorTS, VelocityNames[i]);
             if (grid == nullptr) return GRID_ERROR;
@@ -297,20 +297,20 @@ int VaporField::GetVelocity(float time, const glm::vec3 &pos, glm::vec3 &velocit
             for (int i = 0; i < 3; i++) {
                 grid = _getAGrid(floorTS + 1, VelocityNames[i]);
                 if (grid == nullptr) return GRID_ERROR;
-                ceilVelocity[i] = grid->GetValue(coords);
+                ceilingVelocity[i] = grid->GetValue(coords);
                 missingV[i] = grid->GetMissingValue();
             }
-            hasMissing = glm::equal(ceilVelocity, missingV);
+            hasMissing = glm::equal(ceilingVelocity, missingV);
             if (glm::any(hasMissing)) { return MISSING_VAL; }
 
             float weight = (time - _timestamps[floorTS]) / (_timestamps[floorTS + 1] - _timestamps[floorTS]);
-            velocity = glm::mix(floorVelocity, ceilVelocity, weight) * mult;
+            velocity = glm::mix(floorVelocity, ceilingVelocity, weight) * mult;
             return 0;
         }
     }    // end of unsteady condition
 }
 
-int VaporField::GetScalar(float time, const glm::vec3 &pos, float &scalar) const
+int VaporField::GetScalar(double time, const glm::vec3 &pos, float &scalar) const
 {
     // When this variable doesn't exist, it doesn't make sense to get a scalar value
     // from it, so just return that fact.
@@ -352,12 +352,13 @@ int VaporField::GetScalar(float time, const glm::vec3 &pos, float &scalar) const
         } else {
             grid = _getAGrid(floorTS + 1, ScalarName);
             if (grid == nullptr) return GRID_ERROR;
-            float ceilScalar = grid->GetValue(coords);
-            if (ceilScalar == grid->GetMissingValue()) {
+
+            float ceilingScalar = grid->GetValue(coords);
+            if (ceilingScalar == grid->GetMissingValue()) {
                 return MISSING_VAL;
             } else {
                 float weight = (time - _timestamps[floorTS]) / (_timestamps[floorTS + 1] - _timestamps[floorTS]);
-                scalar = glm::mix(floorScalar, ceilScalar, weight);
+                scalar = glm::mix(floorScalar, ceilingScalar, weight);
                 return 0;
             }
         }
@@ -382,7 +383,7 @@ void VaporField::AssignDataManager(VAPoR::DataMgr *dmgr)
     for (size_t i = 0; i < timeCoords.size(); i++) _timestamps[i] = timeCoords[i];
 }
 
-void VaporField::UpdateParams(const VAPoR::FlowParams *p)
+void VaporField::UpdateParamAndVarNames(const VAPoR::FlowParams *p)
 {
     _params = p;
 
@@ -398,7 +399,13 @@ void VaporField::UpdateParams(const VAPoR::FlowParams *p)
     }                                 // instead of whatever left from before.
 }
 
-int VaporField::LocateTimestamp(float time, size_t &floor) const
+void VaporField::UpdateParams(const VAPoR::FlowParams *p)
+{
+    _params = p;
+    IsSteady = p->GetIsSteady();
+}
+
+int VaporField::LocateTimestamp(double time, size_t &floor) const
 {
     if (_timestamps.empty()) return TIME_ERROR;
     if (_timestamps.size() == 1) {
@@ -421,7 +428,7 @@ int VaporField::LocateTimestamp(float time, size_t &floor) const
 
 int VaporField::GetNumberOfTimesteps() const { return _timestamps.size(); }
 
-int VaporField::CalcDeltaTFromCurrentTimeStep(float &delT) const
+int VaporField::CalcDeltaTFromCurrentTimeStep(double &delT) const
 {
     VAssert(_isReady());
 
@@ -459,19 +466,32 @@ int VaporField::CalcDeltaTFromCurrentTimeStep(float &delT) const
             }
 
     // Let's find the maximum velocity on these sampled locations
-    // Note that we want the raw velocity, which will be the value
+    // Note that we want the velocity without a multiplier, which will be the value
     // returned by GetVelocity() divided by the velocity multiplier.
     float mult = _params->GetVelocityMultiplier();
     if (mult == 0.0f) mult = 1.0f;
-    const float mult1o = 1.0f / mult;
-    float       maxmag = 0.0;
-    glm::vec3   vel;
+    float     maxmag = 0.0f;
+    glm::vec3 vel;
     for (long i = 0; i < totalSamples; i++) {
         int rv = this->GetVelocity(timestamp, samples[i], vel);
-        if (rv != 0) return rv;
-        vel *= mult1o;    // Restore the raw velocity values
-        auto mag = glm::length(vel);
-        if (mag > maxmag) maxmag = mag;
+        // Among possible return values, 0 is good, and MISSING_VAL isn't too bad,
+        // we just need to ignore those values.
+        if (rv == flow::MISSING_VAL)
+            continue;
+        else if (rv != 0)
+            return rv;
+        else {
+            vel /= mult;    // Restore the raw velocity values
+            auto mag = glm::length(vel);
+            if (mag > maxmag) maxmag = mag;
+        }
+    }
+
+    // If all sampled locations are missing values or zero values,
+    //   we give deltaT an arbitrary value and return a special value.
+    if (maxmag == 0.0) {
+        delT = glm::distance(minxyz, maxxyz) / 1000.0;
+        return flow::FIELD_ALL_ZERO;
     }
 
     // Let's dictate that using the maximum velocity FROM OUR SAMPLES
