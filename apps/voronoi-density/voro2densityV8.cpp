@@ -17,9 +17,14 @@
 
 #include "kdtree/nanoflann.hpp"
 
+//#define GROW_THRESHOLD_1 3
+//#define GROW_THRESHOLD_2 6
+//#define GROW_MULTIPLIER 16
+//#define GROW_THRESHOLD_1 3
+//#define GROW_THRESHOLD_2 9
 #define GROW_THRESHOLD_1 3
-#define GROW_THRESHOLD_2 6
-#define GROW_MULTIPLIER  16
+#define GROW_THRESHOLD_2 9
+#define GROW_MULTIPLIER  8
 
 #define GRIDX (512)
 #define GRIDY (512)
@@ -58,6 +63,7 @@ void ReadMelanie(const char *name,    // input:  filename
     len = 0;
     int              lastEntry = 56000;
     std::vector<int> timesteps;
+    int              numParticles = 0;
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
         std::string filename = std::filesystem::path(entry.path().c_str()).filename();
 
@@ -72,24 +78,31 @@ void ReadMelanie(const char *name,    // input:  filename
         for (int i = 0; i < pCount; i++) {
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
+                numParticles++;
                 if (size > GROW_THRESHOLD_1) {
-                    len += size > GROW_THRESHOLD_2 ? GROW_MULTIPLIER * 4 : GROW_MULTIPLIER;
-                } else {
+                    len += 8;
+                }
+                // if (size > GROW_THRESHOLD_1) {
+                //    len += size > GROW_THRESHOLD_2 ? GROW_MULTIPLIER*4 : GROW_MULTIPLIER;
+                //}
+                else {
                     len++;
                 }
             }
         }
-
         status = H5Fclose(file);
         status = H5Sclose(dataspace);
         status = H5Dclose(merSizeSet);
     }
+    std::cout << "Num partcicles " << numParticles << std::endl;
     sort(timesteps.begin(), timesteps.end());
 
     // Initialize buffer to hold XYZ coordinates
     std::cout << "nParticles " << len << std::endl;
     *buf = new float[len * 3];
     int bufferIndex = 0;
+    int bia = 0;
+    int bib = 0;
 
     // Populate buffer with XYZ coordinates
     for (const auto &entry : std::filesystem::directory_iterator(name)) {
@@ -117,18 +130,46 @@ void ReadMelanie(const char *name,    // input:  filename
 
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
+                float *inputBuf = new float[3];
                 if (size > GROW_THRESHOLD_1) {
-                    // std::cout << "growin2..." << std::endl;
-                    int multiplier = size > GROW_THRESHOLD_2 ? GROW_MULTIPLIER * 4 : GROW_MULTIPLIER;
-                    for (int i = 0; i < multiplier; i++) {
-                        float *inputBuf = new float[3];
-                        inputBuf[0] = (float)position[i * 3 + 2] * 26 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 5120.f);
-                        inputBuf[1] = (float)position[i * 3 + 1] * 26 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 5120.f);
-                        inputBuf[2] = (float)position[i * 3] * 26 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 5120.f);
-                        memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
-                        bufferIndex++;
+                    double growSize = 2 * M_PI / 5120.f;
+                    if (size > GROW_THRESHOLD_2) { growSize *= 2; }
+
+                    inputBuf[0] = (float)position[i * 3 + 2] * 26 * M_PI;
+                    inputBuf[1] = (float)position[i * 3 + 1] * 26 * M_PI;
+                    inputBuf[2] = (float)position[i * 3] * 26 * M_PI;
+                    for (int z = 0; z < 2; z++) {
+                        inputBuf[0] += z == 0 ? growSize : growSize * -1;
+                        for (int y = 0; y < 2; y++) {
+                            inputBuf[1] += y == 0 ? growSize : growSize * -1;
+                            for (int x = 0; x < 2; x++) {
+                                inputBuf[2] += x == 0 ? growSize : growSize * -1;
+                                memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
+                                bufferIndex++;
+                                bia++;
+                            }
+                        }
                     }
-                } else {
+                }
+                // std::cout << "growin2..." << std::endl;
+                /*  int multiplier = size > GROW_THRESHOLD_2 ? GROW_MULTIPLIER*4 : GROW_MULTIPLIER;
+                    for (int i=0; i<multiplier; i++ ) {
+                        float* inputBuf = new float[3];
+                        inputBuf[0] = (float)position[ i*3+2 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        inputBuf[1] = (float)position[ i*3+1 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        inputBuf[2] = (float)position[ i*3 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
+                        bufferIndex++;
+                    }*/
+                /*else {
+                    inputBuf[0] = (float)(position[ i*3+2 ]*26*M_PI);
+                    inputBuf[1] = (float)(position[ i*3+1 ]*26*M_PI);
+                    inputBuf[2] = (float)(position[ i*3 ]*26*M_PI);
+                    memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
+                    //std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
+                    bufferIndex++;
+                }*/
+                else {
                     float *inputBuf = new float[3];
                     // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI;
                     // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI;
@@ -139,6 +180,7 @@ void ReadMelanie(const char *name,    // input:  filename
                     memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                     // std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
                     bufferIndex++;
+                    bib++;
                 }
             }
         }
@@ -150,8 +192,11 @@ void ReadMelanie(const char *name,    // input:  filename
         /*
          * Output the data to the screen.
          */
+        //}
     }
     std::cout << "BufferIndex " << bufferIndex << std::endl;
+    std::cout << "bia " << bia << std::endl;
+    std::cout << "bib " << bib << std::endl;
 }
 
 // Specialized method to 1) read in, and 2) process Bipin's data.
