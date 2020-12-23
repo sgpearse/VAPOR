@@ -22,9 +22,13 @@
 //#define GROW_MULTIPLIER 16
 //#define GROW_THRESHOLD_1 3
 //#define GROW_THRESHOLD_2 9
+
 #define GROW_THRESHOLD_1 3
 #define GROW_THRESHOLD_2 9
-#define GROW_MULTIPLIER  8
+//#define GROW_MULTIPLIER 8
+//#define GROW_THRESHOLD_1 1000
+//#define GROW_THRESHOLD_2 9000
+#define GROW_MULTIPLIER 8
 
 #define GRIDX (512)
 #define GRIDY (512)
@@ -144,6 +148,12 @@ void ReadMelanie(const char *name,    // input:  filename
                             inputBuf[1] += y == 0 ? growSize : growSize * -1;
                             for (int x = 0; x < 2; x++) {
                                 inputBuf[2] += x == 0 ? growSize : growSize * -1;
+                                if (inputBuf[0] > 26 * M_PI) inputBuf[0] = 26 * M_PI;
+                                if (inputBuf[1] > 26 * M_PI) inputBuf[1] = 26 * M_PI;
+                                if (inputBuf[2] > 26 * M_PI) inputBuf[2] = 26 * M_PI;
+                                if (inputBuf[0] < 26 * M_PI) inputBuf[0] = 0;
+                                if (inputBuf[1] < 26 * M_PI) inputBuf[1] = 0;
+                                if (inputBuf[2] < 26 * M_PI) inputBuf[2] = 0;
                                 memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                                 bufferIndex++;
                                 bia++;
