@@ -151,9 +151,9 @@ void ReadMelanie(const char *name,    // input:  filename
                                 if (inputBuf[0] > 26 * M_PI) inputBuf[0] = 26 * M_PI;
                                 if (inputBuf[1] > 26 * M_PI) inputBuf[1] = 26 * M_PI;
                                 if (inputBuf[2] > 26 * M_PI) inputBuf[2] = 26 * M_PI;
-                                if (inputBuf[0] < 26 * M_PI) inputBuf[0] = 0;
-                                if (inputBuf[1] < 26 * M_PI) inputBuf[1] = 0;
-                                if (inputBuf[2] < 26 * M_PI) inputBuf[2] = 0;
+                                if (inputBuf[0] < 0) inputBuf[0] = 0;
+                                if (inputBuf[1] < 0) inputBuf[1] = 0;
+                                if (inputBuf[2] < 0) inputBuf[2] = 0;
                                 memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                                 bufferIndex++;
                                 bia++;
