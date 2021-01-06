@@ -134,7 +134,8 @@ void TwoDRenderer::_openGLInit()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glDepthMask(GL_TRUE);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    // glDepthMask(GL_TRUE);
 }
 
 void TwoDRenderer::_openGLRestore()
