@@ -148,45 +148,29 @@ void ReadMelanie(const char *name,    // input:  filename
                             inputBuf[1] += y == 0 ? growSize : growSize * -1;
                             for (int x = 0; x < 2; x++) {
                                 inputBuf[2] += x == 0 ? growSize : growSize * -1;
-                                if (inputBuf[0] > 26 * M_PI) inputBuf[0] = 26 * M_PI;
-                                if (inputBuf[1] > 26 * M_PI) inputBuf[1] = 26 * M_PI;
-                                if (inputBuf[2] > 26 * M_PI) inputBuf[2] = 26 * M_PI;
-                                if (inputBuf[0] < 0) inputBuf[0] = 0;
-                                if (inputBuf[1] < 0) inputBuf[1] = 0;
-                                if (inputBuf[2] < 0) inputBuf[2] = 0;
+                                if (inputBuf[0] > 26 * M_PI) inputBuf[0] = 26 * M_PI - .01;
+                                if (inputBuf[1] > 26 * M_PI) inputBuf[1] = 26 * M_PI - .01;
+                                if (inputBuf[2] > 26 * M_PI) inputBuf[2] = 26 * M_PI - .01;
+                                if (inputBuf[0] < 0) inputBuf[0] = .01;
+                                if (inputBuf[1] < 0) inputBuf[1] = .01;
+                                if (inputBuf[2] < 0) inputBuf[2] = .01;
                                 memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                                 bufferIndex++;
                                 bia++;
                             }
                         }
                     }
-                }
-                // std::cout << "growin2..." << std::endl;
-                /*  int multiplier = size > GROW_THRESHOLD_2 ? GROW_MULTIPLIER*4 : GROW_MULTIPLIER;
-                    for (int i=0; i<multiplier; i++ ) {
-                        float* inputBuf = new float[3];
-                        inputBuf[0] = (float)position[ i*3+2 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
-                        inputBuf[1] = (float)position[ i*3+1 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
-                        inputBuf[2] = (float)position[ i*3 ]*26*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
-                        memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
-                        bufferIndex++;
-                    }*/
-                /*else {
-                    inputBuf[0] = (float)(position[ i*3+2 ]*26*M_PI);
-                    inputBuf[1] = (float)(position[ i*3+1 ]*26*M_PI);
-                    inputBuf[2] = (float)(position[ i*3 ]*26*M_PI);
-                    memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
-                    //std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
-                    bufferIndex++;
-                }*/
-                else {
+                } else {
                     float *inputBuf = new float[3];
-                    // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI;
-                    // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI;
-                    // inputBuf[2] = (float)position[ i*3 ]*25*M_PI;
                     inputBuf[0] = (float)(position[i * 3 + 2] * 26 * M_PI);
                     inputBuf[1] = (float)(position[i * 3 + 1] * 26 * M_PI);
                     inputBuf[2] = (float)(position[i * 3] * 26 * M_PI);
+                    if (inputBuf[0] > 26 * M_PI) inputBuf[0] = 26 * M_PI - .01;
+                    if (inputBuf[1] > 26 * M_PI) inputBuf[1] = 26 * M_PI - .01;
+                    if (inputBuf[2] > 26 * M_PI) inputBuf[2] = 26 * M_PI - .01;
+                    if (inputBuf[0] < 0) inputBuf[0] = .01;
+                    if (inputBuf[1] < 0) inputBuf[1] = .01;
+                    if (inputBuf[2] < 0) inputBuf[2] = .01;
                     memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                     // std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
                     bufferIndex++;
