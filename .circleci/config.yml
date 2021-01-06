@@ -10,11 +10,14 @@ references:
     attach_workspace:
       at: *workspace_root
 
+jobs:
   build_win10_installer:
-    executor: win/default
-    shell: bash.exe
+    executor:
+      name: win/default
+      shell: bash.exe
     steps:
       - checkout
+
 #      - run:
 #          name: Install dependencies
 #          command: |
@@ -43,12 +46,12 @@ references:
 #            msbuild C:\Users\circleci\project\build\PACKAGE.vcxproj /p:Configuration=Release /p:Platform=x64
 #            mkdir -p C:\Users\circleci\project\tmp\workspace\installers
 #            Copy-Item C:\Users\circleci\project\build\*.exe -Destination C:\Users\circleci\project\tmp\workspace\installers\VAPOR3-3.2.0-win64-Weekly.exe
-          no_output_timeout: 45m
-
-      - persist_to_workspace:
-          root: *workspace_root
-          paths: 
-            - installers
+#          no_output_timeout: 45m
+#
+#      - persist_to_workspace:
+#          root: *workspace_root
+#          paths: 
+#            - installers
 
 workflows:
   build:
