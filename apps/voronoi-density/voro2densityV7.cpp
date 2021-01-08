@@ -20,7 +20,7 @@
 #define GROW_THRESHOLD_1 3
 #define GROW_THRESHOLD_2 6
 #define GROW_THRESHOLD_3 9
-#define GROW_MULTIPLIER  16
+#define GROW_MULTIPLIER  8
 
 //#define 512 (512)
 //#define 512 (512)
@@ -74,11 +74,11 @@ void ReadMelanie(const char *name,    // input:  filename
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
                 if (size > GROW_THRESHOLD_3) {
-                    len += GROW_MULTIPLIER * 64;
+                    len += GROW_MULTIPLIER;    //*64;
                 } else if (size > GROW_THRESHOLD_2) {
-                    len += GROW_MULTIPLIER * 16;
+                    len += GROW_MULTIPLIER;    //*16;
                 } else if (size > GROW_THRESHOLD_1) {
-                    len += GROW_MULTIPLIER * 2;
+                    len += GROW_MULTIPLIER;    //*2;
                 } else {
                     len++;
                 }
@@ -120,10 +120,18 @@ void ReadMelanie(const char *name,    // input:  filename
             if (position[i * 3 + 1] > maxY) maxY = position[i * 3 + 1];
             if (position[i * 3] > maxZ) maxZ = position[i * 3];
 
+            if (position[i * 3 + 2] > 2 * M_PI) position[i * 3 + 2] = 2 * M_PI - .01;
+            if (position[i * 3 + 1] > 2 * M_PI) position[i * 3 + 1] = 2 * M_PI - .01;
+            if (position[i * 3] > 2 * M_PI) position[i * 3] = 2 * M_PI - .01;
+            if (position[i * 3 + 2] < 0) position[i * 3 + 2] = .01;
+            if (position[i * 3 + 1] < 0) position[i * 3 + 1] = .01;
+            if (position[i * 3] < 0) position[i * 3] = .01;
+
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
+                // float* inputBuf = new float[3];
                 if (size > GROW_THRESHOLD_3) {
-                    int multiplier = GROW_MULTIPLIER * 64;
+                    int multiplier = GROW_MULTIPLIER;    //*64;
                     for (int i = 0; i < multiplier; i++) {
                         float *inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
@@ -136,7 +144,7 @@ void ReadMelanie(const char *name,    // input:  filename
                         bufferIndex++;
                     }
                 } else if (size > GROW_THRESHOLD_2) {
-                    int multiplier = GROW_MULTIPLIER * 16;
+                    int multiplier = GROW_MULTIPLIER;    //*16;
                     for (int i = 0; i < multiplier; i++) {
                         float *inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
@@ -149,7 +157,7 @@ void ReadMelanie(const char *name,    // input:  filename
                         bufferIndex++;
                     }
                 } else if (size > GROW_THRESHOLD_1) {
-                    int multiplier = GROW_MULTIPLIER * 2;
+                    int multiplier = GROW_MULTIPLIER;    //*2;
                     for (int i = 0; i < multiplier; i++) {
                         float *inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
@@ -170,9 +178,15 @@ void ReadMelanie(const char *name,    // input:  filename
                     // std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
                     bufferIndex++;
                 }
+                /*if (inputBuf[0] > 2*M_PI) inputBuf[0] = 2*M_PI-.01;
+                if (inputBuf[1] > 2*M_PI) inputBuf[1] = 2*M_PI-.01;
+                if (inputBuf[2] > 2*M_PI) inputBuf[2] = 2*M_PI-.01;
+                if (inputBuf[0] < 0) inputBuf[0] = .01;
+                if (inputBuf[1] < 0) inputBuf[1] = .01;
+                if (inputBuf[2] < 0) inputBuf[2] = .01;*/
+                // memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
             }
         }
-
         status = H5Fclose(file);
         status = H5Sclose(dataspace);
         status = H5Dclose(merSizeSet);
