@@ -21,7 +21,7 @@
 #define GROW_THRESHOLD_2 6
 #define GROW_THRESHOLD_3 9
 
-int GROW_MULTIPLIER = 8;
+int GROW_MULTIPLIER = 1;
 
 //#define 512 (512)
 //#define 512 (512)
@@ -95,8 +95,14 @@ void ReadMelanie(const char *name,    // input:  filename
         status = H5Dclose(merSizeSet);
     }
 
-    GROW_MULTIPLIER = 10000000 / len;
-    len = len * GROW_MULTIPLIER;
+    if (len == 0) {
+        std::cout << "No particles.  Exiting." << std::endl;
+        exit(0);
+    }
+    if (len < 300000) {
+        GROW_MULTIPLIER = (int)300000 / len;
+        len = len * GROW_MULTIPLIER;
+    }
 
     sort(timesteps.begin(), timesteps.end());
 
@@ -138,51 +144,66 @@ void ReadMelanie(const char *name,    // input:  filename
 
             int size = merSize[i];
             if (size >= binStart && size < binEnd) {
-                // float* inputBuf = new float[3];
+                float *inputBuf = new float[3];
                 if (size > GROW_THRESHOLD_3) {
                     int multiplier = GROW_MULTIPLIER;    //*8;
-                    for (int i = 0; i < multiplier; i++) {
-                        float *inputBuf = new float[3];
+                    for (int j = 0; j < multiplier; j++) {
+                        // float* inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
                         inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
                         inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 256.f);
-                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
-                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
-                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/1080.f );
+                        if (inputBuf[0] > 2 * M_PI) inputBuf[0] = 2 * M_PI - .01;
+                        if (inputBuf[1] > 2 * M_PI) inputBuf[1] = 2 * M_PI - .01;
+                        if (inputBuf[2] > 2 * M_PI) inputBuf[2] = 2 * M_PI - .01;
+                        if (inputBuf[0] < 0) inputBuf[0] = .01;
+                        if (inputBuf[1] < 0) inputBuf[1] = .01;
+                        if (inputBuf[2] < 0) inputBuf[2] = .01;
                         memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                         bufferIndex++;
                     }
                 } else if (size > GROW_THRESHOLD_2) {
                     int multiplier = GROW_MULTIPLIER;    //*4;
-                    for (int i = 0; i < multiplier; i++) {
-                        float *inputBuf = new float[3];
+                    for (int j = 0; j < multiplier; j++) {
+                        // float* inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
                         inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
                         inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 512.f);
-                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
-                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
-                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/2060.f );
+                        if (inputBuf[0] > 2 * M_PI) inputBuf[0] = 2 * M_PI - .01;
+                        if (inputBuf[1] > 2 * M_PI) inputBuf[1] = 2 * M_PI - .01;
+                        if (inputBuf[2] > 2 * M_PI) inputBuf[2] = 2 * M_PI - .01;
+                        if (inputBuf[0] < 0) inputBuf[0] = .01;
+                        if (inputBuf[1] < 0) inputBuf[1] = .01;
+                        if (inputBuf[2] < 0) inputBuf[2] = .01;
                         memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                         bufferIndex++;
                     }
                 } else if (size > GROW_THRESHOLD_1) {
                     int multiplier = GROW_MULTIPLIER;    //*2;
-                    for (int i = 0; i < multiplier; i++) {
-                        float *inputBuf = new float[3];
+                    for (int j = 0; j < multiplier; j++) {
+                        // float* inputBuf = new float[3];
                         inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
                         inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
                         inputBuf[2] = (float)position[i * 3] * 25 * M_PI + (26 * M_PI * (rand() % 100 - 50) / 100.f) * (2 * M_PI / 2160.f);
-                        // inputBuf[0] = (float)position[ i*3+2 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
-                        // inputBuf[1] = (float)position[ i*3+1 ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
-                        // inputBuf[2] = (float)position[ i*3   ]*25*M_PI + (26*M_PI*(rand()%100-50)/100.f) * ( 2*M_PI/5120.f );
+                        if (inputBuf[0] > 2 * M_PI) inputBuf[0] = 2 * M_PI - .01;
+                        if (inputBuf[1] > 2 * M_PI) inputBuf[1] = 2 * M_PI - .01;
+                        if (inputBuf[2] > 2 * M_PI) inputBuf[2] = 2 * M_PI - .01;
+                        if (inputBuf[0] < 0) inputBuf[0] = .01;
+                        if (inputBuf[1] < 0) inputBuf[1] = .01;
+                        if (inputBuf[2] < 0) inputBuf[2] = .01;
                         memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                         bufferIndex++;
                     }
                 } else {
-                    float *inputBuf = new float[3];
+                    // float* inputBuf = new float[3];
                     inputBuf[0] = (float)position[i * 3 + 2] * 25 * M_PI;
                     inputBuf[1] = (float)position[i * 3 + 1] * 25 * M_PI;
                     inputBuf[2] = (float)position[i * 3] * 25 * M_PI;
+                    if (inputBuf[0] > 2 * M_PI) inputBuf[0] = 2 * M_PI - .01;
+                    if (inputBuf[1] > 2 * M_PI) inputBuf[1] = 2 * M_PI - .01;
+                    if (inputBuf[2] > 2 * M_PI) inputBuf[2] = 2 * M_PI - .01;
+                    if (inputBuf[0] < 0) inputBuf[0] = .01;
+                    if (inputBuf[1] < 0) inputBuf[1] = .01;
+                    if (inputBuf[2] < 0) inputBuf[2] = .01;
                     memcpy((*buf) + bufferIndex * 3, inputBuf, sizeof(float) * 3);
                     // std::cout << len << " " << bufferIndex << " " << inputBuf[0] << " " << inputBuf[1] << " " << inputBuf[2] << std::endl;
                     bufferIndex++;
@@ -192,8 +213,9 @@ void ReadMelanie(const char *name,    // input:  filename
                 if (inputBuf[2] > 2*M_PI) inputBuf[2] = 2*M_PI-.01;
                 if (inputBuf[0] < 0) inputBuf[0] = .01;
                 if (inputBuf[1] < 0) inputBuf[1] = .01;
-                if (inputBuf[2] < 0) inputBuf[2] = .01;*/
-                // memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
+                if (inputBuf[2] < 0) inputBuf[2] = .01;
+                memcpy( (*buf) + bufferIndex*3, inputBuf, sizeof(float)*3 );
+                bufferIndex++;*/
             }
         }
         status = H5Fclose(file);
