@@ -79,7 +79,7 @@ RUN git clone https://github.com/NCAR/VAPOR.git /root/project
 RUN chown -R root:root /root/project
 RUN chmod -R 777 /root/project
 
-RUN cp /root/project/site_files/site.NCAR /root/project/site.local \
+RUN cp /root/project/site_files/site.NCAR /root/project/site.local
 RUN chown -R root:root /root/project
 RUN chmod -R 777 /root/project \
     && mkdir -p /root/project/build
