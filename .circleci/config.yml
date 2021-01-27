@@ -11,6 +11,33 @@ references:
       at: *workspace_root
 
 jobs:
+  clang-format:
+    docker:
+      - image: sgpearse/vapor3-ubuntu18:latest
+    steps:
+      - checkout
+
+      - run:
+          name: install clang-format
+          command: |
+            apt-get update
+            apt-get install -y clang-format
+
+      - run:
+          name: run clang-format
+          command: |
+            for FILE in $(git --no-pager diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH master) |grep -E "\.h|\.cpp")
+            do
+                echo $FILE
+                clang-format -i $FILE
+            done
+
+      - run:
+          name: push formatted code
+          command: |
+            git commit -a -m "Apply clang-format to branch"
+            git push
+
   build_ubuntu18:
     docker:
       - image: sgpearse/vapor3-ubuntu18:latest
@@ -360,8 +387,9 @@ jobs:
 workflows:
   build:
     jobs:
-      - build_ubuntu18
-      - build_centos7
+      - clang-format
+      #- build_ubuntu18
+      #- build_centos7
       #- build_ubuntu16
       #- build_osx
       #- build_win10_installer

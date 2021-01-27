@@ -76,6 +76,35 @@ AnnotationEventRouter::AnnotationEventRouter(QWidget *parent, ControlExec *ce) :
     _digitsCombo = new Combo(axisDigitsEdit, axisDigitsSlider, true);
     _ticWidthCombo = new Combo(ticWidthEdit, ticWidthSlider);
     _annotationVaporTable = new VaporTable(axisAnnotationTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     _annotationVaporTable->Reinit((VaporTable::DOUBLE), (VaporTable::MUTABLE), (VaporTable::HighlightFlags)(0));
 
     connectAnnotationWidgets();
