@@ -58,14 +58,9 @@ RUN fileid="1S9DwySMnQrBuUUZGKolD__WQrjTmLgyn" \
     && curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}" > /dev/null \
     && curl -Lb ./cookie \
     "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" \
-    -o ${filename}
-
-RUN ls -lrth /usr/local/VAPOR-Deps/
-
-#RUN bsdtar -xf /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz -C /usr/local/VAPOR-Deps
-
-RUN chown -R root:root /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
-RUN chmod -R 777 /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
+    -o ${filename} \
+    && chown -R root:root /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz \
+    && chmod -R 777 /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
 
 RUN bsdtar -xf /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz -C /usr/local/VAPOR-Deps
 RUN rm /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
