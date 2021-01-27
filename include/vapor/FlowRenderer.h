@@ -71,6 +71,7 @@ private:
     std::vector<long>  _cache_gridNumOfSeeds{5, 5, 5};
     long               _cache_randNumOfSeeds = 5;
     int                _cache_seedInjInterval = 0;
+    int                _cache_pastNumOfTimeSteps = 0;
     float              _cache_rakeBiasStrength = 0.0f;
     double             _cache_deltaT = 0.05;
     FlowSeedMode       _cache_seedGenMode = FlowSeedMode::UNIFORM;
@@ -102,6 +103,7 @@ private:
     int  _genSeedsRakeUniform(std::vector<flow::Particle> &seeds) const;
     int  _genSeedsRakeRandom(std::vector<flow::Particle> &seeds) const;
     int  _genSeedsRakeRandomBiased(std::vector<flow::Particle> &seeds) const;
+    int  _genSeedsFromList(std::vector<flow::Particle> &seeds) const;
 
     int       _renderFromAnAdvectionLegacy(const flow::Advection *, FlowParams *, bool fast);
     int       _renderAdvection(const flow::Advection *adv);
