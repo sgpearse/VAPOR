@@ -143,22 +143,29 @@ void ParamsMgr::LoadState(const XmlNode *node)
 
     // If data loaded set up data dependent parameters from new state.
     //
-    map<string, DataMgr *>::const_iterator itr;
-    for (itr = _dataMgrMap.begin(); itr != _dataMgrMap.end(); ++itr) { addDataMgrMerge(itr->first); }
+    vector<string> dataSetNames = GetDataMgrNames();
+    for (auto dataSetName : dataSetNames) {
+        map<string, DataMgr *>::const_iterator itr = _dataMgrMap.find(dataSetName);
+        if (itr != _dataMgrMap.end()) addDataMgrMerge(itr->first);
+    }
 }
 
 int ParamsMgr::LoadState(string stateFile)
 {
+    BeginSaveStateGroup("Load state");
+
     XmlParser parser;
     XmlNode   node;
 
     int rc = parser.LoadFromFile(&node, stateFile);
     if (rc < 0) {
         SetErrMsg("Invalid session file : %s", stateFile.c_str());
+        EndSaveStateGroup();
         return (-1);
     }
 
     LoadState(&node);
+    EndSaveStateGroup();
     return (0);
 }
 
@@ -244,6 +251,44 @@ void ParamsMgr::AddDataMgr(string dataSetName, DataMgr *dataMgr)
     } else {
         addDataMgrNew();
     }
+
+    ParamsSeparator windowsSep(_rootSeparator, _windowsTag);
+    XmlNode *       winSepNode = windowsSep.GetNode();
+    for (int i = 0; i < winSepNode->GetNumChildren(); i++) {
+        string winName = winSepNode->GetChild(i)->GetTag();
+
+        // Instantiating ParamsSeparator classes will add child nodes to the
+        // XML tree as a side effect
+        //
+        ParamsSeparator windowSep(&windowsSep, winName);
+
+        ParamsSeparator renderSep(&windowSep, _renderersTag);
+
+        ParamsSeparator dataSep(&renderSep, dataSetName);
+    }
+}
+
+void ParamsMgr::RemoveVisualizer(string winName)
+{
+    if (!_rootSeparator->HasChild(_windowsTag)) return;
+
+    ParamsSeparator windowsSep(_rootSeparator, _windowsTag);
+
+    if (!windowsSep.HasChild(winName)) return;
+
+    _ssave.BeginGroup("CreateVisualizer");
+
+    delete_ren_containers(winName);
+
+    RemoveVisualizerParamsInstance(winName);
+
+    ParamsSeparator windowSep(ParamsSeparator(&windowsSep, winName));
+
+    // Set parent to root so  Xml representation will be deleted
+    //
+    windowSep.SetParent(NULL);
+
+    _ssave.EndGroup();
 }
 
 void ParamsMgr::RemoveDataMgr(string dataSetName)
@@ -253,14 +298,35 @@ void ParamsMgr::RemoveDataMgr(string dataSetName)
     if (itr == _dataMgrMap.end()) return;
 
     _dataMgrMap.erase(itr);
+
+    delete_datasets(dataSetName);
 }
 
 vector<string> ParamsMgr::GetDataMgrNames() const
 {
     vector<string> dataMgrNames;
 
-    map<string, DataMgr *>::const_iterator itr;
-    for (itr = _dataMgrMap.begin(); itr != _dataMgrMap.end(); ++itr) { dataMgrNames.push_back(itr->first); }
+    ParamsSeparator windowsSep(_rootSeparator, _windowsTag);
+
+    XmlNode *winSepNode = windowsSep.GetNode();
+    for (int i = 0; i < winSepNode->GetNumChildren(); i++) {
+        XmlNode *winNode = winSepNode->GetChild(i);
+        string   winName = winNode->GetTag();
+
+        if (winNode->HasChild(_renderersTag)) {
+            XmlNode *renderersNode = winNode->GetChild(_renderersTag);
+
+            for (int j = 0; j < renderersNode->GetNumChildren(); j++) {
+                XmlNode *dataSepNode = renderersNode->GetChild(j);
+                string   s = dataSepNode->GetTag();
+
+                dataMgrNames.push_back(s);
+            }
+        }
+    }
+
+    sort(dataMgrNames.begin(), dataMgrNames.end());
+    dataMgrNames.erase(unique(dataMgrNames.begin(), dataMgrNames.end()), dataMgrNames.end());
 
     return (dataMgrNames);
 }
@@ -276,6 +342,26 @@ ViewpointParams *ParamsMgr::CreateVisualizerParamsInstance(string winName)
     _ssave.EndGroup();
 
     return (vpParams);
+}
+
+void ParamsMgr::RemoveVisualizerParamsInstance(string winName)
+{
+    _ssave.BeginGroup("RemoveVisualizerParamsInstance");
+
+    map<string, ViewpointParams *>::const_iterator itr;
+    itr = _viewpointParamsMap.find(winName);
+    if (itr == _viewpointParamsMap.end()) return;
+
+    ViewpointParams *vParams = itr->second;
+
+    // Set parent to root so  Xml representation will be deleted
+    //
+    vParams->SetParent(NULL);
+    delete vParams;
+
+    _viewpointParamsMap.erase(itr);
+
+    _ssave.EndGroup();
 }
 
 RenParamsContainer *ParamsMgr::createRenderParamsHelper(string winName, string dataSetName, string className, string instName)
@@ -833,6 +919,30 @@ void ParamsMgr::delete_ren_containers()
     while ((itr = _renderParamsMap.begin()) != _renderParamsMap.end()) { delete_ren_containers(itr->first); }
 }
 
+void ParamsMgr::delete_datasets(string dataSetName)
+{
+    ParamsSeparator windowsSep(_rootSeparator, _windowsTag);
+
+    XmlNode *winSepNode = windowsSep.GetNode();
+    for (int i = 0; i < winSepNode->GetNumChildren(); i++) {
+        XmlNode *winNode = winSepNode->GetChild(i);
+        string   winName = winNode->GetTag();
+
+        delete_ren_containers(winName, dataSetName);
+
+        XmlNode *renderersNode = winNode->GetChild(_renderersTag);
+        for (int j = 0; j < renderersNode->GetNumChildren(); j++) {
+            XmlNode *dataSepNode = renderersNode->GetChild(j);
+            string   s = dataSepNode->GetTag();
+
+            if (s == dataSetName) {
+                dataSepNode->SetParent(NULL);
+                break;
+            }
+        }
+    }
+}
+
 RenParamsContainer *ParamsMgr::make_ren_container(string winName, string dataSetName, string renderName)
 {
     ParamsSeparator *windowsSep = new ParamsSeparator(_rootSeparator, _windowsTag);
@@ -966,7 +1076,7 @@ bool ParamsMgr::undoRedoHelper()
 
     // Get top of **undo** stack
     //
-    const XmlNode *newNode = _ssave.GetTop(description);
+    const XmlNode *newNode = _ssave.GetTopUndo(description);
     if (!newNode) { newNode = _ssave.GetBase(); }
     if (!newNode) return (false);    // nothing to undo - shouldnt get here
 
@@ -1005,7 +1115,25 @@ bool ParamsMgr::Redo()
     return (undoRedoHelper());
 }
 
-void ParamsMgr::UndoRedoClear() { _ssave.Clear(); }
+void ParamsMgr::UndoRedoClear()
+{
+    _ssave.Clear();
+    RebaseStateSave();
+}
+
+string ParamsMgr::GetTopUndoDesc() const
+{
+    string s;
+    _ssave.GetTopUndo(s);
+    return (s);
+}
+
+string ParamsMgr::GetTopRedoDesc() const
+{
+    string s;
+    _ssave.GetTopRedo(s);
+    return (s);
+}
 
 ParamsMgr::PMgrStateSave::PMgrStateSave(int stackSize) : StateSave()
 {
@@ -1039,7 +1167,7 @@ void ParamsMgr::PMgrStateSave::Save(const XmlNode *node, string description)
 
     const XmlNode *topNode = NULL;
     string         s;
-    topNode = GetTop(s);
+    topNode = GetTopUndo(s);
     if (topNode && (*topNode == *_rootNode)) {
         // Don't save tree if no changes
         //
@@ -1056,7 +1184,8 @@ void ParamsMgr::PMgrStateSave::Save(const XmlNode *node, string description)
 
     // It not inside a group push this element onto the stack
     //
-    _undoStack.push_back(make_pair(description, new XmlNode(*_rootNode)));
+    if (GetUndoEnabled()) _undoStack.push_back(make_pair(description, new XmlNode(*_rootNode)));
+
 //#define DEBUG
 #ifdef DEBUG
     cout << "ParamsMgr::PMgrStateSave::Save() : saving node " << node->GetTag() << " : " << description << endl;
@@ -1095,7 +1224,7 @@ void ParamsMgr::PMgrStateSave::EndGroup()
 
     const XmlNode *topNode = NULL;
     string         s;
-    topNode = GetTop(s);
+    topNode = GetTopUndo(s);
 
     if (topNode && (*topNode == *_rootNode)) {
         // Don't save tree if no changes
@@ -1125,7 +1254,7 @@ void ParamsMgr::PMgrStateSave::EndGroup()
 
 void ParamsMgr::PMgrStateSave::IntermediateChange() { emitIntermediateStateChange(); }
 
-const XmlNode *ParamsMgr::PMgrStateSave::GetTop(string &description) const
+const XmlNode *ParamsMgr::PMgrStateSave::GetTopUndo(string &description) const
 {
     VAssert(_rootNode);
     description.clear();
@@ -1133,6 +1262,19 @@ const XmlNode *ParamsMgr::PMgrStateSave::GetTop(string &description) const
     if (!_undoStack.size()) return (NULL);
 
     const pair<string, XmlNode *> &p1 = _undoStack.back();
+
+    description = p1.first;
+    return (p1.second);
+}
+
+const XmlNode *ParamsMgr::PMgrStateSave::GetTopRedo(string &description) const
+{
+    VAssert(_rootNode);
+    description.clear();
+
+    if (!_redoStack.size()) return (NULL);
+
+    const pair<string, XmlNode *> &p1 = _redoStack.back();
 
     description = p1.first;
     return (p1.second);

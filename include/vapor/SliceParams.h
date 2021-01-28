@@ -21,9 +21,15 @@ public:
 
     virtual int Initialize() override;
 
+    virtual void SetRefinementLevel(int level) override;
+
     // Get static string identifier for this params class
     //
     static string GetClassType() { return ("SliceParams"); }
+
+    //! \copydoc RenderParams::GetRenderDim()
+    //
+    virtual size_t GetRenderDim() const override { return (3); }
 
     int GetSampleRate() const;
 
@@ -35,11 +41,14 @@ public:
 
     std::vector<double> GetCachedValues() const;
 
+    static const string _sampleRateTag;
+    static const string SampleLocationTag;
+
 private:
+    bool _initialized = false;
+
     void                _init();
     std::vector<double> _cachedValues;
-
-    static const string _sampleRateTag;
 
 };    // End of Class SliceParams
 };    // namespace VAPoR

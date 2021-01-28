@@ -35,6 +35,7 @@
 #include <QIcon>
 #include <QLineEdit>
 #include <QWidgetAction>
+#include <chrono>
 #include <vapor/ControlExecutive.h>
 #include "GUIStateParams.h"
 #include "SettingsParams.h"
@@ -52,6 +53,8 @@ class QMdiArea;
 class QDockWindow;
 class QLabel;
 class QSpinBox;
+class ProgressStatusBar;
+class QTimer;
 
 class VizWindow;
 class VizWinMgr;
@@ -70,6 +73,8 @@ class MainForm : public QMainWindow {
 public:
     MainForm(vector<QString> files, QApplication *app, QWidget *parent = 0);
     ~MainForm();
+
+    int RenderAndExit(int start, int end, const std::string &baseFile, int width, int height);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event);
@@ -171,12 +176,22 @@ private:
     QSpinBox *    _interactiveRefinementSpin;
     QDockWidget * _tabDockWindow;
 
+    bool     _animationCapture = false;
+    int      _progressSavedFB = -1;
+    bool     _progressEnabled = false;
+    bool     _needToReenableProgressAfterAnimation = false;
+    QAction *_progressEnabledMenuItem = nullptr;
+
+    ProgressStatusBar *                                _status = nullptr;
+    std::chrono::time_point<std::chrono::system_clock> _progressLastUpdateTime;
+    const QObject *                                    _disableUserInputForAllExcept = nullptr;
+    bool                                               _insideMessedUpQtEventLoop = false;
+
     Statistics *        _stats;
     Plot *              _plot;
     PythonVariables *   _pythonVariables;
     BannerGUI *         _banner;
     VizSelectCombo *    _windowSelector;
-    QLabel *            _modeStatusWidget;
     VAPoR::ControlExec *_controlExec;
     VAPoR::ParamsMgr *  _paramsMgr;
     TabManager *        _tabMgr;
@@ -188,6 +203,7 @@ private:
     bool _begForCitation;
     int  _eventsSinceLastSave;
     bool _buttonPressed;
+    bool _paramsEventQueued = false;
 
     ErrorReporter *_errRep;
 
@@ -199,6 +215,7 @@ private:
 
     void _performSessionAutoSave();
     void _stateChangeCB();
+    void _intermediateStateChangedCB();
 
     QMdiArea *getMDIArea() { return _mdiArea; }
 
@@ -273,7 +290,8 @@ private:
 
     bool openDataHelper(string dataSetName, string format, const vector<string> &files, const vector<string> &options = vector<string>());
 
-    void         loadDataHelper(const std::vector<string> &files, string prompt, string filter, string format, bool multi, bool promptToReplaceExistingDataset = true);
+    enum DatasetExistsAction { Prompt, AddNew, ReplaceFirst };
+    void         loadDataHelper(const std::vector<string> &files, string prompt, string filter, string format, bool multi, DatasetExistsAction existsAction = Prompt);
     void         _createCaptureMenu();
     void         _createToolsMenu();
     void         _createEditMenu();
@@ -286,10 +304,14 @@ private:
     void         _createAnimationToolBar();
     void         _createVizToolBar();
     void         createToolBars();
-    virtual void sessionOpenHelper(string fileName);
+    void         _createProgressWidget();
+    void         _disableProgressWidget();
+    virtual void sessionOpenHelper(string fileName, bool loadDatasets = true);
 
     template<class T> bool isDatasetValidFormat(const std::vector<std::string> &paths) const;
     bool                   determineDatasetFormat(const std::vector<std::string> &paths, std::string *fmt) const;
+
+    bool isOpenGLContextActive() const;
 
     // Enable/Disable all the widgets that require data to be present
     //
@@ -299,13 +321,13 @@ private:
 
     void _fileSaveHelper(string path);
 
-    string _getDataSetName(string file, bool promptToReplaceExistingDataset = true);
+    string _getDataSetName(string file, DatasetExistsAction existsAction = Prompt);
 
 private slots:
     void _plotClosed();
     void _statsClosed();
     void _pythonClosed();
-    void sessionOpen(QString qfileName = "");
+    void sessionOpen(QString qfileName = "", bool loadDatasets = true);
     void fileSave();
     void fileSaveAs();
     void fileExit();
@@ -321,7 +343,8 @@ private slots:
     void captureJpegSequence();
     void captureTiffSequence();
     void capturePngSequence();
-    void startAnimCapture(string filter, string defaultSuffix);
+    void selectAnimCatureOutput(string filter, string defaultSuffix);
+    void startAnimCapture(string baseFile, string defaultSuffix = "tiff");
     void endAnimCapture();
     void captureSingleImage(string filter, string defaultSuffix);
     void captureSingleJpeg();

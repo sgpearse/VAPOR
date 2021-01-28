@@ -1,9 +1,14 @@
 #include "vapor/glutil.h"
 #include "vapor/FlowRenderer.h"
 #include "vapor/Particle.h"
+#include "vapor/AdvectionIO.h"
 #include <iostream>
+#include <sstream>
 #include <cstring>
+#include <cctype>    // std::isspace
 #include <random>
+#include <algorithm>
+#include <vapor/Progress.h>
 
 #define GL_ERROR -20
 
@@ -15,7 +20,9 @@ static RendererRegistrar<FlowRenderer> registrar(FlowRenderer::GetClassType(), F
 
 // Constructor
 FlowRenderer::FlowRenderer(const ParamsMgr *pm, std::string &winName, std::string &dataSetName, std::string &instName, DataMgr *dataMgr)
-: Renderer(pm, winName, dataSetName, FlowParams::GetClassType(), FlowRenderer::GetClassType(), instName, dataMgr), _velocityField(8), _colorField(2), _colorMapTexOffset(0)
+: Renderer(pm, winName, dataSetName, FlowParams::GetClassType(), FlowRenderer::GetClassType(), instName, dataMgr), _velocityField(9),    // big enough to hold velocities for 3 time steps.
+  _colorField(3),                                                                                                                        // big enough to hold scalars for 3 time steps.
+  _colorMapTexOffset(0)
 {
 }
 
@@ -85,6 +92,73 @@ int FlowRenderer::_initializeGL()
     return 0;
 }
 
+int FlowRenderer::_outputFlowLines()
+{
+    auto *params = dynamic_cast<FlowParams *>(GetActiveParams());
+    assert(params != nullptr);
+
+    // Retrieve additional variables that users require to sample
+    const auto addiVars = params->GetFlowOutputMoreVariables();
+
+    // Identify variables that an advection already has, but the user doesn't
+    // include in addiVars. Remove them.
+    //
+    // start by listing all variables as potentially to be removed
+    auto removeVars = _advection.GetPropertyVarNames();
+    auto containV = [&addiVars](const std::string &v) { return std::find(addiVars.cbegin(), addiVars.cend(), v) != addiVars.cend(); };
+    // remove those confirmed by the user from the "to remove" list
+    removeVars.erase(std::remove_if(removeVars.begin(), removeVars.end(), containV), removeVars.end());
+    for (const auto &rmV : removeVars) {
+        _advection.RemoveParticleProperty(rmV);
+
+        if (_2ndAdvection) _2ndAdvection->RemoveParticleProperty(rmV);
+    }
+
+    for (const auto &v : addiVars) {
+        // Create a VaporField with this variable
+        flow::VaporField varField(2);
+        varField.AssignDataManager(_dataMgr);
+        varField.UpdateParams(params);
+        varField.ScalarName = v;
+
+        // Sample values along the pathlines.
+        // Note that the advection class will do nothing if this variable already exists.
+        // Also note that the advection class will do a simple copy if this variable is
+        //   the same as particle values.
+        _advection.CalculateParticleProperties(&varField);
+        if (_2ndAdvection) _2ndAdvection->CalculateParticleProperties(&varField);
+    }
+
+    // In case of steady flow, output the number of particles that
+    // equals to the advection steps.
+    // In the case of unsteady flow, output particles that are up to
+    // the advection timestamp.
+    int rv;
+    if (params->GetIsSteady()) {
+        rv = flow::OutputFlowlinesNumSteps(&_advection, params->GetFlowlineOutputFilename().c_str(), params->GetSteadyNumOfSteps(), _dataMgr->GetMapProjection(), false);
+    } else {
+        rv = flow::OutputFlowlinesMaxTime(&_advection, params->GetFlowlineOutputFilename().c_str(), _timestamps.at(params->GetCurrentTimestep()), _dataMgr->GetMapProjection(), false);
+    }
+    if (rv != 0) {
+        MyBase::SetErrMsg("Output flow lines wrong!");
+        return rv;
+    }
+
+    if (_2ndAdvection) {    // bi-directional advection
+        if (params->GetIsSteady()) {
+            rv = flow::OutputFlowlinesNumSteps(_2ndAdvection.get(), params->GetFlowlineOutputFilename().c_str(), params->GetSteadyNumOfSteps(), _dataMgr->GetMapProjection(), true);
+        } else {
+            rv = flow::OutputFlowlinesMaxTime(_2ndAdvection.get(), params->GetFlowlineOutputFilename().c_str(), _timestamps.at(params->GetCurrentTimestep()), _dataMgr->GetMapProjection(), true);
+        }
+        if (rv != 0) {
+            MyBase::SetErrMsg("Output flow lines wrong!");
+            return rv;
+        }
+    }
+
+    return 0;
+}
+
 int FlowRenderer::_paintGL(bool fast)
 {
     FlowParams *params = dynamic_cast<FlowParams *>(GetActiveParams());
@@ -93,34 +167,9 @@ int FlowRenderer::_paintGL(bool fast)
     _velocityField.DefaultZ = Renderer::GetDefaultZ(_dataMgr, params->GetCurrentTimestep());
 
     if (params->GetNeedFlowlineOutput()) {
-        // In case of steady flow, output the number of particles that
-        // equals to the advection steps plus one.
-        // In the case of unsteady flow, output particles that are up to
-        // the advection time step.
-        if (params->GetIsSteady()) {
-            rv = _advection.OutputStreamsGnuplotMaxPart(params->GetFlowlineOutputFilename(), params->GetSteadyNumOfSteps() + 1, false);
-        } else {
-            rv = _advection.OutputStreamsGnuplotMaxTime(params->GetFlowlineOutputFilename(), _timestamps.at(params->GetCurrentTimestep()), false);
-        }
-        if (rv != 0) {
-            MyBase::SetErrMsg("Output flow lines wrong!");
-            return flow::FILE_ERROR;
-        }
-
-        if (_2ndAdvection)    // bi-directional advection
-        {
-            if (params->GetIsSteady()) {
-                rv = _2ndAdvection->OutputStreamsGnuplotMaxPart(params->GetFlowlineOutputFilename(), params->GetSteadyNumOfSteps() + 1, true);
-            } else {
-                rv = _2ndAdvection->OutputStreamsGnuplotMaxTime(params->GetFlowlineOutputFilename(), _timestamps.at(params->GetCurrentTimestep()), true);
-            }
-            if (rv != 0) {
-                MyBase::SetErrMsg("Output flow lines wrong!");
-                return flow::FILE_ERROR;
-            }
-        }
-
+        rv = _outputFlowLines();
         params->SetNeedFlowlineOutput(false);
+        if (rv != 0) return rv;
     }
 
     if (_updateFlowCacheAndStates(params) != 0) {
@@ -130,71 +179,59 @@ int FlowRenderer::_paintGL(bool fast)
 
     if (_velocityStatus != FlowStatus::UPTODATE || _colorStatus != FlowStatus::UPTODATE) _renderStatus = FlowStatus::SIMPLE_OUTOFDATE;
 
-    _velocityField.UpdateParams(params);
-    _colorField.UpdateParams(params);
+    _velocityField.UpdateParamAndVarNames(params);
+    _colorField.UpdateParamAndVarNames(params);
 
-    // In case there's 0 or 1 variable selected, meaning that more than one the velocity
+    // In case there's 0 variable selected, meaning that more than 2 of the velocity
     // variable names are empty strings, then the paint routine aborts.
-    if (_velocityField.GetNumOfEmptyVelocityNames() > 1) {
-        MyBase::SetErrMsg("Please provide at least 2 field variables for advection!");
+    if (_velocityField.GetNumOfEmptyVelocityNames() > 2) {
+        MyBase::SetErrMsg("Please provide at least 1 field variables for advection!");
         return flow::PARAMS_ERROR;
     }
 
     if (_velocityStatus == FlowStatus::SIMPLE_OUTOFDATE) {
-        /* First step is to re-calculate deltaT */
+        // First step is to re-calculate deltaT
         rv = _velocityField.CalcDeltaTFromCurrentTimeStep(_cache_deltaT);
-        if (rv != 0) {
+        if (rv == flow::FIELD_ALL_ZERO) {
+            MyBase::SetErrMsg("The velocity field seems to contain only invalid values!");
+            return flow::PARAMS_ERROR;
+        } else if (rv != 0) {
             MyBase::SetErrMsg("Update deltaT failed!");
             return rv;
         }
 
-        /* Read seeds from a file is a special case, so we put it up front */
-        if (_cache_seedGenMode == FlowSeedMode::LIST) {
-            rv = _advection.InputStreamsGnuplot(params->GetSeedInputFilename());
-            if (rv != 0) {
-                MyBase::SetErrMsg("Input seed list wrong!");
-                return flow::FILE_ERROR;
-            }
-            rv = _updateAdvectionPeriodicity(&_advection);
-            if (rv != 0) {
-                MyBase::SetErrMsg("Update Advection Periodicity failed!");
-                return flow::GRID_ERROR;
-            }
-            if (_2ndAdvection)    // bi-directional advection
-            {
-                _2ndAdvection->InputStreamsGnuplot(params->GetSeedInputFilename());
-                rv = _updateAdvectionPeriodicity(_2ndAdvection.get());
-                if (rv != 0) {
-                    MyBase::SetErrMsg("Update Advection Periodicity failed!");
-                    return flow::GRID_ERROR;
-                }
-            }
-        } else {
-            std::vector<flow::Particle> seeds;
-            if (_cache_seedGenMode == FlowSeedMode::UNIFORM)
-                _genSeedsRakeUniform(seeds);
-            else if (_cache_seedGenMode == FlowSeedMode::RANDOM)
-                _genSeedsRakeRandom(seeds);
-            else if (_cache_seedGenMode == FlowSeedMode::RANDOM_BIAS)
-                _genSeedsRakeRandomBiased(seeds);
+        // Obtain seeds for Flow Renderer.
+        std::vector<flow::Particle> seeds;
+        if (_cache_seedGenMode == FlowSeedMode::UNIFORM)
+            rv = _genSeedsRakeUniform(seeds);
+        else if (_cache_seedGenMode == FlowSeedMode::RANDOM)
+            rv = _genSeedsRakeRandom(seeds);
+        else if (_cache_seedGenMode == FlowSeedMode::RANDOM_BIAS)
+            rv = _genSeedsRakeRandomBiased(seeds);
+        else if (_cache_seedGenMode == FlowSeedMode::LIST)
+            rv = _genSeedsFromList(seeds);
 
-            // Note on UseSeedParticles(): this is the only function that resets
-            //   all the streams inside of an Advection class.
-            //   It should immediately be followed by a function to set its periodicity
-            _advection.UseSeedParticles(seeds);
-            rv = _updateAdvectionPeriodicity(&_advection);
+        if (rv != 0) {
+            MyBase::SetErrMsg("Generating seeds failed!");
+            return flow::NO_SEED_PARTICLE_YET;
+        }
+
+        // Note on UseSeedParticles(): this is the only function that resets
+        //   all the streams inside of an Advection class.
+        //   It should immediately be followed by a function to set its periodicity
+        _advection.UseSeedParticles(seeds);
+        rv = _updateAdvectionPeriodicity(&_advection);
+        if (rv != 0) {
+            MyBase::SetErrMsg("Update Advection Periodicity failed!");
+            return flow::GRID_ERROR;
+        }
+        if (_2ndAdvection)    // bi-directional advection
+        {
+            _2ndAdvection->UseSeedParticles(seeds);
+            rv = _updateAdvectionPeriodicity(_2ndAdvection.get());
             if (rv != 0) {
                 MyBase::SetErrMsg("Update Advection Periodicity failed!");
                 return flow::GRID_ERROR;
-            }
-            if (_2ndAdvection)    // bi-directional advection
-            {
-                _2ndAdvection->UseSeedParticles(seeds);
-                rv = _updateAdvectionPeriodicity(_2ndAdvection.get());
-                if (rv != 0) {
-                    MyBase::SetErrMsg("Update Advection Periodicity failed!");
-                    return flow::GRID_ERROR;
-                }
             }
         }
 
@@ -219,33 +256,33 @@ int FlowRenderer::_paintGL(bool fast)
     }
 
     if (!_advectionComplete) {
-        float deltaT = _cache_deltaT;
+        auto deltaT = _cache_deltaT;
         rv = flow::ADVECT_HAPPENED;
 
-        /* Advection scheme 1: advect a maximum number of steps.
-         * This scheme is used for steady flow */
+        // Advection scheme 1: advect a maximum number of steps.
+        // This scheme is used for steady flow
         if (params->GetIsSteady()) {
-            /* If the advection is single-directional */
+            // If the advection is single-directional
             if (params->GetFlowDirection() == 1)    // backward integration
-                deltaT *= -1.0f;
-            int numOfSteps = params->GetSteadyNumOfSteps();
-            for (size_t i = _advection.GetMaxNumOfPart() - 1;    // existing number of advection steps
-                 i < numOfSteps && rv == flow::ADVECT_HAPPENED; i++) {
-                rv = _advection.AdvectOneStep(&_velocityField, deltaT);
-            }
+                deltaT *= -1.0;
+            long numOfSteps = params->GetSteadyNumOfSteps();
 
-            /* If the advection is bi-directional */
+            Progress::StartIndefinite("Performing flowline calculations");
+            Progress::Update(0);
+            _advection.AdvectSteps(&_velocityField, deltaT, numOfSteps);
+
+            // If the advection is bi-directional
             if (_2ndAdvection) {
-                assert(deltaT > 0.0f);
-                float deltaT2 = deltaT * -1.0f;
-                rv = flow::ADVECT_HAPPENED;
-                for (size_t i = _2ndAdvection->GetMaxNumOfPart() - 1; i < numOfSteps && rv == flow::ADVECT_HAPPENED; i++) { rv = _2ndAdvection->AdvectOneStep(&_velocityField, deltaT2); }
-            }
+                assert(deltaT > 0.0);
+                auto deltaT2 = deltaT * -1.0;
 
+                _2ndAdvection->AdvectSteps(&_velocityField, deltaT2, numOfSteps);
+            }
+            Progress::Finish();
         }
 
-        /* Advection scheme 2: advect to a certain timestamp.
-         * This scheme is used for unsteady flow */
+        // Advection scheme 2: advect to a certain timestamp.
+        // This scheme is used for unsteady flow
         else {
             for (int i = 1; i <= _cache_currentTS; i++) { rv = _advection.AdvectTillTime(&_velocityField, _timestamps.at(i - 1), deltaT, _timestamps.at(i)); }
         }
@@ -265,7 +302,7 @@ int FlowRenderer::_paintGL(bool fast)
 
     _prepareColormap(params);
 
-    int ret = 0;
+    rv = 0;
 
     if (params->GetValueLong("old_render", 0)) {
         _renderFromAnAdvectionLegacy(&_advection, params, fast);
@@ -279,17 +316,17 @@ int FlowRenderer::_paintGL(bool fast)
         // before each half is drawn.
         if (_2ndAdvection) _renderStatus = FlowStatus::SIMPLE_OUTOFDATE;
 
-        ret |= _renderAdvection(&_advection);
+        rv |= _renderAdvection(&_advection);
         /* If the advection is bi-directional */
         if (_2ndAdvection) {
             _renderStatus = FlowStatus::SIMPLE_OUTOFDATE;
-            ret |= _renderAdvection(_2ndAdvection.get());
+            rv |= _renderAdvection(_2ndAdvection.get());
         }
     }
 
     _restoreGLState();
 
-    return ret;
+    return rv;
 }
 
 int FlowRenderer::_renderAdvection(const flow::Advection *adv)
@@ -311,11 +348,11 @@ int FlowRenderer::_renderAdvection(const flow::Advection *adv)
         size_t maxSamples = rp->GetSteadyNumOfSteps() + 1;
 
         // First calculate the starting time stamp. Copied from legacy.
-        double startingTime;
+        double startingTime = _timestamps[0];
         if (!_cache_isSteady) {
-            int pastNumOfTimeSteps = dynamic_cast<FlowParams *>(GetActiveParams())->GetPastNumOfTimeSteps();
             startingTime = _timestamps[0];
-            if (_cache_currentTS - pastNumOfTimeSteps > 0) startingTime = _timestamps[_cache_currentTS - pastNumOfTimeSteps];
+            // note that _cache_currentTS is cast to a signed integer.
+            if (int(_cache_currentTS) - _cache_pastNumOfTimeSteps > 0) startingTime = _timestamps[_cache_currentTS - _cache_pastNumOfTimeSteps];
         }
 
         for (int s = 0; s < nStreams; s++) {
@@ -391,7 +428,20 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
     float radiusBase = rp->GetValueDouble(FlowParams::RenderRadiusBaseTag, -1);
     if (radiusBase == -1) {
         vector<double> mind, maxd;
-        _dataMgr->GetVariableExtents(rp->GetCurrentTimestep(), rp->GetColorMapVariableName(), rp->GetRefinementLevel(), rp->GetCompressionLevel(), mind, maxd);
+
+        // Need to find a non-empty variable from color mapping or velocity variables.
+        std::string nonEmptyVarName = rp->GetColorMapVariableName();
+        if (nonEmptyVarName.empty()) {
+            for (auto it = _velocityField.VelocityNames.cbegin(); it != _velocityField.VelocityNames.cend(); ++it) {
+                if (!it->empty()) {
+                    nonEmptyVarName = *it;
+                    break;
+                }
+            }
+        }
+        assert(!nonEmptyVarName.empty());
+
+        _dataMgr->GetVariableExtents(rp->GetCurrentTimestep(), nonEmptyVarName, rp->GetRefinementLevel(), rp->GetCompressionLevel(), mind, maxd);
         vec3  min(mind[0], mind[1], mind[2]);
         vec3  max(maxd[0], maxd[1], maxd[2]);
         vec3  lens = max - min;
@@ -415,7 +465,7 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
             shader = _glManager->shaderManager->GetShader("FlowGlyphsLineDirArrow2D");
         else
             shader = _glManager->shaderManager->GetShader("FlowLines");
-    } else {
+    } else if (renderType == FlowParams::RenderTypeSamples) {
         if (glyphType == FlowParams::GlpyhTypeSphere)
             if (geom3d)
                 shader = _glManager->shaderManager->GetShader("FlowGlyphsSphereSplat");
@@ -425,6 +475,8 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
             shader = _glManager->shaderManager->GetShader("FlowGlyphsArrow");
         else
             shader = _glManager->shaderManager->GetShader("FlowGlyphsArrow2D");
+    } else {
+        shader = _glManager->shaderManager->GetShader("FlowLines");
     }
 
     if (!shader) return -1;
@@ -462,6 +514,10 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
     shader->SetUniform("fade_length", (int)rp->GetValueLong(FlowParams::RenderFadeTailLengthTag, 10));
     shader->SetUniform("fade_stop", (int)rp->GetValueLong(FlowParams::RenderFadeTailStopTag, 0));
 
+    shader->SetUniform("density", renderType == FlowParams::RenderTypeDensity);
+    shader->SetUniform("falloff", (float)rp->GetValueDouble(FlowParams::RenderDensityFalloffTag, 1));
+    shader->SetUniform("tone", (float)rp->GetValueDouble(FlowParams::RenderDensityToneMappingTag, 1));
+
     //    Features supported by shaders but not implemented in GUI/not finished
     //
     //    shader->SetUniform("constantColorEnabled", false);
@@ -483,6 +539,15 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
     glEnable(GL_BLEND);
     glBindVertexArray(_VAO);
 
+    if (renderType == FlowParams::RenderTypeDensity) {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        if (rp->GetValueLong("invert", false))
+            glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+        else
+            glBlendEquation(GL_FUNC_ADD);
+        glDepthMask(GL_FALSE);
+    }
+
     size_t offset = 0;
     for (int n : _streamSizes) {
         shader->SetUniform("nVertices", n);
@@ -490,6 +555,9 @@ int FlowRenderer::_renderAdvectionHelper(bool renderDirection)
         offset += n;
     }
 
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
     glBindVertexArray(0);
     glDisable(GL_CULL_FACE);
     shader->UnBind();
@@ -538,9 +606,8 @@ int FlowRenderer::_renderFromAnAdvectionLegacy(const flow::Advection *adv, FlowP
     } else    // Unsteady flow (only occurs with forward direction)
     {
         // First calculate the starting time stamp
-        int    pastNumOfTimeSteps = params->GetPastNumOfTimeSteps();
         double startingTime = _timestamps[0];
-        if (_cache_currentTS - pastNumOfTimeSteps > 0) startingTime = _timestamps[_cache_currentTS - pastNumOfTimeSteps];
+        if (int(_cache_currentTS) - _cache_pastNumOfTimeSteps > 0) startingTime = _timestamps[_cache_currentTS - _cache_pastNumOfTimeSteps];
 
         std::vector<float> vec;
         for (size_t s = 0; s < numOfStreams; s++) {
@@ -574,7 +641,6 @@ void FlowRenderer::_particleHelper1(std::vector<float> &vec, const flow::Particl
     {
         vec.push_back(p.location.x);
         vec.push_back(p.location.y);
-        // vec.push_back( 0.0f );
         vec.push_back(p.location.z);
         vec.push_back(p.value);
     } else if (vec.size() > 0)    // p is a separator and vec is non-empty
@@ -645,7 +711,7 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
         }
     }
 
-    // Check variable names
+    // Check velocity variable names
     // If names not the same, entire stream is out of date
     // Note: variable names are kept in VaporFields.
     // Note: RenderParams always returns arrays of size 3 here.
@@ -657,9 +723,7 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
         _colorStatus = FlowStatus::SIMPLE_OUTOFDATE;
     }
 
-    /* Don't know why, but on MacOS 10.14.6 and Apple LLVM version 10.0.1 (clang-1001.0.46.4),
-       this comment fixes issue #2141. */
-
+    // Check color mapping variable names
     std::string colorVarName = params->GetColorMapVariableName();
     if (colorVarName != _colorField.ScalarName) { _colorStatus = FlowStatus::SIMPLE_OUTOFDATE; }
 
@@ -720,7 +784,8 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
     }
     if (diff) {
         _cache_rake = rake;
-        if (_cache_seedGenMode != FlowSeedMode::LIST) {    // Mark out-of-date if we're currently using any mode that involves a rake
+        // Mark out-of-date if we're currently using any mode that involves a rake
+        if (_cache_seedGenMode != FlowSeedMode::LIST) {
             _colorStatus = FlowStatus::SIMPLE_OUTOFDATE;
             _velocityStatus = FlowStatus::SIMPLE_OUTOFDATE;
         }
@@ -769,9 +834,9 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
         }
     }
 
-    /*
-     * Now we branch into steady and unsteady cases, and treat them separately
-     */
+    //
+    // Now we branch into steady and unsteady cases, and treat them separately
+    //
     if (params->GetIsSteady()) {
         if (_cache_isSteady)    // steady state isn't changed
         {
@@ -779,7 +844,7 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
                 if (_colorStatus == FlowStatus::UPTODATE) _colorStatus = FlowStatus::TIME_STEP_OOD;
                 if (_velocityStatus == FlowStatus::UPTODATE) _velocityStatus = FlowStatus::TIME_STEP_OOD;
             }
-            if (params->GetSteadyNumOfSteps() != _cache_steadyNumOfSteps) _renderStatus = FlowStatus::TIME_STEP_OOD;
+            if (params->GetSteadyNumOfSteps() != _cache_steadyNumOfSteps) _renderStatus = FlowStatus::SIMPLE_OUTOFDATE;
             _cache_steadyNumOfSteps = params->GetSteadyNumOfSteps();
 
             if (_cache_currentTS != params->GetCurrentTimestep()) {
@@ -809,13 +874,17 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
     {
         if (!_cache_isSteady)    // unsteady state isn't changed
         {
+            // First consider if the advection needs to be updated.
             if (_cache_currentTS < params->GetCurrentTimestep()) {
                 if (_colorStatus == FlowStatus::UPTODATE) { _colorStatus = FlowStatus::TIME_STEP_OOD; }
                 if (_velocityStatus == FlowStatus::UPTODATE) { _velocityStatus = FlowStatus::TIME_STEP_OOD; }
             }
-            if (_cache_currentTS != params->GetCurrentTimestep()) _renderStatus = FlowStatus::TIME_STEP_OOD;
+
+            // Second consider if the rendering needs to be updated.
+            if (_cache_currentTS != params->GetCurrentTimestep() || _cache_pastNumOfTimeSteps != params->GetPastNumOfTimeSteps()) { _renderStatus = FlowStatus::SIMPLE_OUTOFDATE; }
             _cache_currentTS = params->GetCurrentTimestep();
             _cache_steadyNumOfSteps = params->GetSteadyNumOfSteps();
+            _cache_pastNumOfTimeSteps = params->GetPastNumOfTimeSteps();
         } else    // switched from steady to unsteady
         {
             _cache_isSteady = false;
@@ -835,7 +904,7 @@ int FlowRenderer::_updateFlowCacheAndStates(const FlowParams *params)
     return 0;
 }
 
-void FlowRenderer::_dupSeedsNewTime(std::vector<flow::Particle> &seeds, size_t firstN, float newTime) const
+void FlowRenderer::_dupSeedsNewTime(std::vector<flow::Particle> &seeds, size_t firstN, double newTime) const
 {
     VAssert(firstN <= seeds.size());
     for (size_t i = 0; i < firstN; i++) seeds.emplace_back(seeds[i].location, newTime);
@@ -846,57 +915,73 @@ int FlowRenderer::_genSeedsRakeUniform(std::vector<flow::Particle> &seeds) const
     FlowParams *params = dynamic_cast<FlowParams *>(GetActiveParams());
     VAssert(params);
 
-    /* sanity check: rake extents and uniform seed numbers match dims */
-    int dim = _cache_gridNumOfSeeds.size();
+    // sanity check: rake extents and uniform seed numbers match dims
+    size_t dim = _cache_gridNumOfSeeds.size();
+    VAssert(dim == 2 || dim == 3);
     VAssert(_cache_rake.size() == dim * 2);
 
-    /* Create arrays that contain X, Y, and Z coordinates */
+    // Populate the list of seeds
     float start[3], step[3];
-    for (int i = 0; i < dim; i++)    // for each of the X, Y, Z dimensions
-    {
-        if (_cache_gridNumOfSeeds[i] == 1)    // one seed in this dimension
-        {
-            start[i] = _cache_rake[i * 2] + 0.5f * (_cache_rake[i * 2 + 1] - _cache_rake[i * 2]);
-            step[i] = 0.0f;
-        } else    // more than one seed in this dimension
-        {
-            start[i] = _cache_rake[i * 2];
-            step[i] = (_cache_rake[i * 2 + 1] - _cache_rake[i * 2]) / float(_cache_gridNumOfSeeds[i] - 1);
-        }
+    for (size_t i = 0; i < dim; i++) {
+        step[i] = (_cache_rake[i * 2 + 1] - _cache_rake[i * 2]) / float(_cache_gridNumOfSeeds[i]);
+        start[i] = _cache_rake[i * 2];
     }
-    if (dim == 2)    // put default Z values
-    {
+    if (dim == 2) {
         start[2] = Renderer::GetDefaultZ(_dataMgr, params->GetCurrentTimestep());
         step[2] = 0.0f;
     }
+    size_t seedsZ = 1;
+    if (dim == 3) { seedsZ = _cache_gridNumOfSeeds[2]; }
 
-    /* Populate the list of seeds */
-    float     timeVal = _timestamps.at(0);    // Default time value
+    auto      timeVal = _timestamps.at(0);    // Default time value
     glm::vec3 loc;
     seeds.clear();
-    long seedsZ;
-    if (dim == 2)
-        seedsZ = 1;
-    else
-        seedsZ = _cache_gridNumOfSeeds[2];
-    // Reserve enough space at the beginning for performance considerations
     seeds.reserve(seedsZ * _cache_gridNumOfSeeds[1] * _cache_gridNumOfSeeds[0]);
-    for (long k = 0; k < seedsZ; k++)
-        for (long j = 0; j < _cache_gridNumOfSeeds[1]; j++)
+    for (long k = 0; k < seedsZ; k++) {
+        for (long j = 0; j < _cache_gridNumOfSeeds[1]; j++) {
             for (long i = 0; i < _cache_gridNumOfSeeds[0]; i++) {
-                loc.x = start[0] + float(i) * step[0];
-                loc.y = start[1] + float(j) * step[1];
-                loc.z = start[2] + float(k) * step[2];
+                loc.x = start[0] + (float(i) + 0.5f) * step[0];
+                loc.y = start[1] + (float(j) + 0.5f) * step[1];
+                loc.z = start[2] + (float(k) + 0.5f) * step[2];
                 seeds.emplace_back(loc, timeVal);
             }
+        }
+    }
 
-    /* If in unsteady case and there are multiple seed injections,
-       we insert more seeds */
+    // If in unsteady case and there are multiple seed injections,
+    //   we insert more seeds.
     if (!_cache_isSteady && _cache_seedInjInterval > 0) {
         size_t firstN = seeds.size();
         // Check every time step available, see if we need to inject seeds at that time step
         for (size_t ts = 1; ts < _timestamps.size(); ts++)
-            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps.at(ts)); }
+            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps[ts]); }
+    }
+
+    return 0;
+}
+
+int FlowRenderer::_genSeedsFromList(std::vector<flow::Particle> &seeds) const
+{
+    FlowParams *params = dynamic_cast<FlowParams *>(GetActiveParams());
+    VAssert(params);
+
+    // Read seed locations (X, Y, Z) from a file.
+    std::vector<flow::Particle> read_from_disk = flow::InputSeedsCSV(params->GetSeedInputFilename());
+    if (read_from_disk.empty()) return flow::NO_SEED_PARTICLE_YET;
+
+    // Set seed time to be the time stamp at step 0
+    double timeVal = _timestamps.at(0);
+    for (auto &seed : read_from_disk) seed.time = timeVal;
+
+    seeds = std::move(read_from_disk);
+
+    // If in unsteady case and there are multiple seed injections, we insert more seeds.
+    if (!_cache_isSteady && _cache_seedInjInterval > 0) {
+        size_t firstN = seeds.size();
+        // Check every time step available, see if we need to inject seeds at that time step
+        for (size_t ts = 1; ts < _timestamps.size(); ts++) {
+            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps[ts]); }
+        }
     }
 
     return 0;
@@ -917,7 +1002,7 @@ int FlowRenderer::_genSeedsRakeRandom(std::vector<flow::Particle> &seeds) const
     std::uniform_real_distribution<float> distX(_cache_rake[0], _cache_rake[1]);
     std::uniform_real_distribution<float> distY(_cache_rake[2], _cache_rake[3]);
 
-    float timeVal = _timestamps.at(0);
+    auto timeVal = _timestamps.at(0);
     seeds.resize(_cache_randNumOfSeeds);
     if (dim == 3) {
         std::uniform_real_distribution<float> distZ(_cache_rake[4], _cache_rake[5]);
@@ -937,12 +1022,13 @@ int FlowRenderer::_genSeedsRakeRandom(std::vector<flow::Particle> &seeds) const
         }
     }
 
-    /* If in unsteady case and there are multiple seed injections, we insert more seeds */
+    // If in unsteady case and there are multiple seed injections, we insert more seeds.
     if (!_cache_isSteady && _cache_seedInjInterval > 0) {
         size_t firstN = seeds.size();
         // Check every time step available, see if we need to inject seeds at that time step
-        for (size_t ts = 1; ts < _timestamps.size(); ts++)
-            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps.at(ts)); }
+        for (size_t ts = 1; ts < _timestamps.size(); ts++) {
+            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps[ts]); }
+        }
     }
 
     return 0;
@@ -989,7 +1075,7 @@ int FlowRenderer::_genSeedsRakeRandomBiased(std::vector<flow::Particle> &seeds) 
     // Thus, we only keep random seeds that are falling on non-missing-value locations.
     glm::vec3           loc;
     std::vector<double> locD(3);
-    float               timeVal = _timestamps.at(0);
+    auto                timeVal = _timestamps.at(0);
     // This is the total number of seeds to generate, based on the bias strength.
     long numOfSeedsToGen = long(numOfSeedsNeeded * (std::abs(_cache_rakeBiasStrength) + 1.0f));
     long numOfTrials = 0;
@@ -1048,12 +1134,13 @@ int FlowRenderer::_genSeedsRakeRandomBiased(std::vector<flow::Particle> &seeds) 
     for (auto &e : seeds)              // reset the value field of each particle
         e.value = 0.0f;
 
-    /* If in unsteady case and there are multiple seed injections, we insert more seeds */
+    // If in unsteady case and there are multiple seed injections, we insert more seeds.
     if (!_cache_isSteady && _cache_seedInjInterval > 0) {
         size_t firstN = seeds.size();
         // Check every time step available, see if we need to inject seeds at that time step
-        for (size_t ts = 1; ts < _timestamps.size(); ts++)
-            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps.at(ts)); }
+        for (size_t ts = 1; ts < _timestamps.size(); ts++) {
+            if (ts % _cache_seedInjInterval == 0) { _dupSeedsNewTime(seeds, firstN, _timestamps[ts]); }
+        }
     }
 
     return 0;

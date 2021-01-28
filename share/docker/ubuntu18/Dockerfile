@@ -25,7 +25,7 @@ RUN apt-get update \
 # Acquire 3rd party libraries
 #
 RUN mkdir -p /usr/local/VAPOR-Deps
-RUN fileid="1j4IO4VCU0Wvyu2T3BH0e9I0qiiwCIrEd" \
+RUN fileid="1v0AwfOnDsf8hMzBqg4OcEtcEyH5YpnIn" \
     && filename="/usr/local/VAPOR-Deps/2019-Aug-Ubuntu.tar.xz" \
     && curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}" > /dev/null \
     && curl -Lb ./cookie \
@@ -55,13 +55,13 @@ RUN tar -xf /tmp/smokeTestData.tar.gz \
 RUN chmod -R 777 /smokeTestData
 
 RUN cd / \
-    && git clone https://github.com/NCAR/VAPOR.git \
-    && cd VAPOR \
+    && git clone https://github.com/NCAR/VAPOR.git /root/project \
+    && cd /root/project \
     && cp site_files/site.NCAR site.local \
     && mkdir build
 
-RUN cd /VAPOR/build \
+RUN cd /root/project/build \
     && export CMAKE_CXX_COMPILER=g++ \
     && cmake .. && make
 
-WORKDIR /VAPOR
+WORKDIR /root/project

@@ -15,14 +15,29 @@ namespace VAPoR {
 enum class FlowSeedMode : int { UNIFORM = 0, RANDOM = 1, RANDOM_BIAS = 2, LIST = 3 };
 enum class FlowDir : int { FORWARD = 0, BACKWARD = 1, BI_DIR = 2 };
 
-class PARAMS_API FlowParams : public RenderParams {
+class FlowParams;
+class PARAMS_API FakeRakeBox : public Box {
 public:
-    enum RenderType { RenderTypeStream, RenderTypeSamples };
+    using Box::Box;
+    FlowParams *parent = nullptr;
+    void        SetExtents(const vector<double> &minExt, const vector<double> &maxExt) override;
+};
+
+class PARAMS_API FlowParams : public RenderParams {
+    StateSave    _fakeRakeStateSave;
+    FakeRakeBox *_fakeRakeBox = nullptr;
+    bool         _initialized = false;
+
+public:
+    enum RenderType { RenderTypeStream, RenderTypeSamples, RenderTypeDensity };
     enum GlpyhType { GlpyhTypeSphere, GlpyhTypeArrow };
 
     // Constructors
     FlowParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave);
     FlowParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave, XmlNode *xmlNode);
+
+    FlowParams(const FlowParams &rhs);
+    FlowParams &operator=(const FlowParams &rhs);
 
     virtual ~FlowParams();
 
@@ -55,6 +70,8 @@ public:
     std::string GetFlowlineOutputFilename() const;
     void        SetFlowlineOutputFilename(const std::string &);
 
+    std::vector<std::string> GetFlowOutputMoreVariables() const;
+
     // Note: this result vector could be of size 2 or 3.
     std::vector<bool> GetPeriodic() const;
     void              SetPeriodic(const std::vector<bool> &);
@@ -65,6 +82,7 @@ public:
      * If the rake wasn't set by users, it returns a vector containing nans.
      * If it represents a 2D area, then it will contain the first 4 elements.
      */
+    Box *              GetRakeBox();
     std::vector<float> GetRake() const;
     void               SetRake(const std::vector<float> &);
 
@@ -96,6 +114,16 @@ public:
     int  GetSeedInjInterval() const;
     void SetSeedInjInterval(int);
 
+    //! \copydoc RenderParams::GetRenderDim()
+    //
+    virtual size_t GetRenderDim() const override
+    {
+        for (const auto &p : GetFieldVariableNames()) {
+            if (!p.empty()) return _dataMgr->GetVarTopologyDim(p);
+        }
+        return GetBox()->IsPlanar() ? 2 : 3;
+    }
+
     static const std::string RenderTypeTag;
     static const std::string RenderRadiusBaseTag;
     static const std::string RenderRadiusScalarTag;
@@ -107,6 +135,9 @@ public:
     static const std::string RenderGlyphStrideTag;
     static const std::string RenderGlyphOnlyLeadingTag;
 
+    static const std::string RenderDensityFalloffTag;
+    static const std::string RenderDensityToneMappingTag;
+
     static const std::string RenderFadeTailTag;
     static const std::string RenderFadeTailStartTag;
     static const std::string RenderFadeTailStopTag;
@@ -117,22 +148,26 @@ public:
     static const std::string PhongSpecularTag;
     static const std::string PhongShininessTag;
 
-private:
     static const std::string _isSteadyTag;
     static const std::string _velocityMultiplierTag;
     static const std::string _steadyNumOfStepsTag;
     static const std::string _seedGenModeTag;
     static const std::string _seedInputFilenameTag;
     static const std::string _flowlineOutputFilenameTag;
+    static const std::string _flowOutputMoreVariablesTag;
     static const std::string _flowDirectionTag;
     static const std::string _needFlowlineOutputTag;
-    static const std::string _periodicTag;
+    static const std::string _xPeriodicTag;
+    static const std::string _yPeriodicTag;
+    static const std::string _zPeriodicTag;
     static const std::string _rakeTag;
     static const std::string _rakeBiasVariable;
     static const std::string _rakeBiasStrength;
     static const std::string _pastNumOfTimeSteps;
     static const std::string _seedInjInterval;
-    static const std::string _gridNumOfSeedsTag;
+    static const std::string _xGridNumOfSeedsTag;
+    static const std::string _yGridNumOfSeedsTag;
+    static const std::string _zGridNumOfSeedsTag;
     static const std::string _randomNumOfSeedsTag;
 
     // maps between ints and "human readable" strings

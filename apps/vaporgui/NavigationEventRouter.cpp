@@ -35,6 +35,8 @@
 #include <QTextEdit>
 #include <QScrollArea>
 #include <cfloat>
+#include "PCheckbox.h"
+#include "PIntegerInput.h"
 
 #include <qcombobox.h>
 #include <qfiledialog.h>
@@ -81,9 +83,9 @@ NavigationEventRouter::NavigationEventRouter(QWidget *parent, ControlExec *ce) :
     VSection *framebufferSection = new VSection("Framebuffer Settings");
     verticalLayout->insertWidget(verticalLayout->count() - 1, framebufferSection);
 
-    framebufferSection->layout()->addWidget(_useCustomFramebufferCheckbox = new ParamsWidgetCheckbox(ViewpointParams::UseCustomFramebufferTag, "Use Custom Output Size"));
-    framebufferSection->layout()->addWidget(_customFramebufferWidth = new ParamsWidgetNumber(ViewpointParams::CustomFramebufferWidthTag, "Output Width (px)"));
-    framebufferSection->layout()->addWidget(_customFramebufferHeight = new ParamsWidgetNumber(ViewpointParams::CustomFramebufferHeightTag, "Output Height (px)"));
+    framebufferSection->layout()->addWidget(_useCustomFramebufferCheckbox = new PCheckbox(ViewpointParams::UseCustomFramebufferTag, "Use Custom Output Size"));
+    framebufferSection->layout()->addWidget(_customFramebufferWidth = new PIntegerInput(ViewpointParams::CustomFramebufferWidthTag, "Output Width (px)"));
+    framebufferSection->layout()->addWidget(_customFramebufferHeight = new PIntegerInput(ViewpointParams::CustomFramebufferHeightTag, "Output Height (px)"));
     _customFramebufferWidth->SetRange(1, 16384);
     _customFramebufferHeight->SetRange(1, 16384);
 }
@@ -819,19 +821,25 @@ void NavigationEventRouter::_setViewpointParams(const vector<double> &modelview,
     paramsMgr->EndSaveStateGroup();
 }
 
-void NavigationEventRouter::_setViewpointParams(const double center[3], const double posvec[3], const double dirvec[3], const double upvec[3]) const
+void NavigationEventRouter::_setViewpointParams(const double center[3], const double posvec[3], const double dirvec[3], const double upvec[3])
 {
+    std::vector<double> modelview, centerv;
+
     // Ugh. Use trackball to convert viewing vectors into a model view
     // matrix
     //
     Trackball trackball;
-    trackball.setFromFrame(posvec, dirvec, upvec, center, true);
-    trackball.TrackballSetMatrix();
-
-    const double *m = trackball.GetModelViewMatrix();
-
-    vector<double> modelview(m, m + 16);
-    vector<double> centerv(center, center + 3);
+    bool      rc = trackball.setFromFrame(posvec, dirvec, upvec, center, true);
+    if (rc == false) {    // If trackball fails
+        MSG_ERR("Invalid camera settings");
+        updateCameraChanged();
+        return;
+    } else {    // else use the trackball's model view matrix
+        trackball.TrackballSetMatrix();
+        const double *m = trackball.GetModelViewMatrix();
+        modelview.assign(m, m + 16);
+        centerv.assign(center, center + 3);
+    }
 
     _setViewpointParams(modelview, centerv);
 }

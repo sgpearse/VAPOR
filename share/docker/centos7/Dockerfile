@@ -50,7 +50,10 @@ RUN mkdir -p /usr/local/VAPOR-Deps
 #RUN fileid="1q9U5FJIvWLvwNbKLVluCiSH-uAnQVgU1" \
 
 # Qt 5.13.2
-RUN fileid="1e7F3kDoKctBmB3NOF4dES2395oScb9_0" \
+#RUN fileid="1e7F3kDoKctBmB3NOF4dES2395oScb9_0" \
+
+# Ospray
+RUN fileid="1S9DwySMnQrBuUUZGKolD__WQrjTmLgyn" \
     && filename="/usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz" \
     && curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}" > /dev/null \
     && curl -Lb ./cookie \
@@ -59,19 +62,30 @@ RUN fileid="1e7F3kDoKctBmB3NOF4dES2395oScb9_0" \
 
 RUN ls -lrth /usr/local/VAPOR-Deps/
 
+#RUN bsdtar -xf /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz -C /usr/local/VAPOR-Deps
+
+RUN chown -R root:root /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
+RUN chmod -R 777 /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
+
 RUN bsdtar -xf /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz -C /usr/local/VAPOR-Deps
+RUN rm /usr/local/VAPOR-Deps/2019-Aug-CentOS.tar.xz
 
-RUN chown -R root:root /usr
-RUN chmod -R 777 /usr
+RUN chown -R root:root /usr/local/VAPOR-Deps
+RUN chmod -R 777 /usr/local/VAPOR-Deps
 
-RUN git clone https://github.com/NCAR/VAPOR.git \
-    && cp /VAPOR/site_files/site.NCAR /VAPOR/site.local \
-    && mkdir /VAPOR/build \
+RUN git clone https://github.com/NCAR/VAPOR.git /root/project
+RUN chown -R root:root /root/project
+RUN chmod -R 777 /root/project
+
+RUN cp /root/project/site_files/site.NCAR /root/project/site.local \
+RUN chown -R root:root /root/project
+RUN chmod -R 777 /root/project
+    && mkdir -p /root/project/build
+RUN chown -R root:root /root/project
+RUN chmod -R 777 /root/project
     && export CMAKE_CXX_COMPILER=g++ \
-    && cd /VAPOR/build \
+    && cd /root/project/build \
     && cmake3 .. \
     && make && pwd && ls && ls bin
 
-RUN /VAPOR/build/bin/vaporpychecker
-
-WORKDIR /VAPOR
+WORKDIR /root/project

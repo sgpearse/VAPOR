@@ -1,31 +1,27 @@
-#include <QEvent>
-#include <QWidget>
-
 #include "VContainer.h"
+#include <cassert>
+#include <QVBoxLayout>
 
-const int VContainer::_LEFT_MARGIN = 0;
-const int VContainer::_TOP_MARGIN = 0;
-const int VContainer::_RIGHT_MARGIN = 0;
-const int VContainer::_BOTTOM_MARGIN = 0;
-
-VContainer::VContainer() : QWidget()
+VContainer::VContainer(QWidget *w)
 {
-    QHBoxLayout *layout = new QHBoxLayout;
-    layout->setContentsMargins(_LEFT_MARGIN, _TOP_MARGIN, _RIGHT_MARGIN, _BOTTOM_MARGIN);
-    setLayout(layout);
-
-    setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    QLayout *layout = new QVBoxLayout;
+    layout->setMargin(0);
+    layout->setSpacing(0);
+    layout->addWidget(w);
+    QWidget::setLayout(layout);
 }
 
-MouseWheelWidgetAdjustmentGuard::MouseWheelWidgetAdjustmentGuard(QObject *parent) : QObject(parent) {}
-
-bool MouseWheelWidgetAdjustmentGuard::eventFilter(QObject *o, QEvent *e)
+void VContainer::AddBottomStretch()
 {
-    const QWidget *widget = dynamic_cast<QWidget *>(o);
-    if (e->type() == QEvent::Wheel && widget && !widget->hasFocus()) {
-        e->ignore();
-        return true;
-    }
+    QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(QWidget::layout());
+    assert(layout);
+    assert(layout->count() == 1);
+    layout->addStretch();
+}
 
-    return QObject::eventFilter(o, e);
+void VContainer::SetPadding(int left, int top, int right, int bottom)
+{
+    QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(QWidget::layout());
+    assert(layout);
+    layout->setContentsMargins(left, top, right, bottom);
 }

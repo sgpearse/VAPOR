@@ -543,9 +543,7 @@ void VizWin::_setNewExtents()
         FlowParams *fp = dynamic_cast<FlowParams *>(rParams);
         if (fp) {
             // Sam's box format: xmin, xmax, ymin, ymax, zmin, zmax
-            ParamsMgr *     paramsMgr = _controlExec->GetParamsMgr();
-            GUIStateParams *gp = dynamic_cast<GUIStateParams *>(paramsMgr->GetParams(GUIStateParams::GetClassType()));
-            int             dims = gp->GetFlowDimensionality();
+            int dims = fp->GetRenderDim();
 
             if (dims == 3) {    // 3D flow renderer
                 vector<float> b(6);
@@ -600,6 +598,15 @@ void VizWin::mouseMoveEvent(QMouseEvent *e)
 void VizWin::setFocus() { QWidget::setFocus(); }
 
 void VizWin::Render(bool fast)
+{
+    // Failsafe to prevent VizWin::Render from being called recursively.
+    if (_insideRender) return;
+    _insideRender = true;
+    _renderHelper(fast);
+    _insideRender = false;
+}
+
+void VizWin::_renderHelper(bool fast)
 {
     // Need to call since we're not overriding QGLWidget::paintGL()
     //

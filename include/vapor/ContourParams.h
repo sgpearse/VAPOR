@@ -32,24 +32,7 @@ public:
     Contours *GetCurrentContours();
 
     void MakeNewContours(string varName);
-
-    //! Set the variable type being used by the barbs
-    //!
-    void SetVariables3D(bool val)
-    {
-        if (val)
-            SetValueString(_varsAre3dTag, "Set variable dimensionality", "true");
-        else
-            SetValueString(_varsAre3dTag, "Set variable dimensionality", "false");
-    }
-
-    //! Find out whether the barbs are using 2D or 3D variables
-    //!
-    bool VariablesAre3D() const
-    {
-        if (GetValueString(_varsAre3dTag, "true") == "true") { return true; }
-        return false;
-    }
+    void GenerateContourValues(double start, double spacing, int num, Contours *c = nullptr);
 
     //! Determine line thickness in voxels
     //! \retval double line thickness
@@ -65,6 +48,8 @@ public:
 
     double GetContourMax();
 
+    void SetContourCount(int num);
+    void SetContourMin(double val);
     void SetContourSpacing(double val);
 
     void GetLineColor(int lineNum, float color[3]);
@@ -75,9 +60,9 @@ public:
 
     bool GetLockToTF() const;
 
-    bool           HasIsoValues() const { return true; }
-    vector<double> GetIsoValues(const string &variable);
-    void           SetIsoValues(const string &variable, const vector<double> &values);
+    bool           HasIsoValues() const override { return true; }
+    vector<double> GetIsoValues(const string &variable) override;
+    void           SetIsoValues(const string &variable, const vector<double> &values) override;
 
     vector<double> GetContourValues(const string &varName);
     void           SetContourValues(const string &varName, const vector<double> &vals);
@@ -85,6 +70,10 @@ public:
     // Get static string identifier for this params class
     //
     static string GetClassType() { return ("ContourParams"); }
+
+    //! \copydoc RenderParams::GetRenderDim()
+    //
+    virtual size_t GetRenderDim() const override { return (2); }
 
     int GetNumDigits() const
     {
@@ -109,7 +98,6 @@ public:
 private:
     void                _init();
     static const string _thicknessScaleTag;
-    static const string _varsAre3dTag;
     static const string _lineColorTag;
     static const string _contoursTag;
     static const string _numDigitsTag;

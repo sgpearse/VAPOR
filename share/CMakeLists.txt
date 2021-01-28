@@ -1,7 +1,7 @@
 add_subdirectory (Doxygen)
 
 if (BUILD_VDC)
-	file (GLOB SHADERS_SRC shaders/*.vert shaders/*.frag)
+	file (GLOB SHADERS_SRC shaders/*.vert shaders/*.frag shaders/*.geom)
 	add_custom_target (
 		shaders ALL
 		SOURCES ${SHADERS_SRC}
@@ -17,6 +17,7 @@ if (BUILD_VDC AND ${GENERATE_FULL_INSTALLER})
 		python
 		palettes
 		examples
+		${THIRD_PARTY_DIR}/share/images
 	)
 	install (
 		DIRECTORY ${SHARE_DIRS}

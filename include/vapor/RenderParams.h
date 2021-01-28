@@ -144,22 +144,45 @@ public:
     //
     virtual void SetFieldVariableNames(vector<string> varNames);
 
+    //! Set the X field variable name, e.g. used in flow integration.
+    //! \param[in] std::string varName for X field
+    //
+    void SetXFieldVariableName(std::string varName);
+
+    //! Set the Y field variable name, e.g. used in flow integration.
+    //! \param[in] std::string varName for Y field
+    //
+    void SetYFieldVariableName(std::string varName);
+
+    //! Set the Z field variable name, e.g. used in flow integration.
+    //! \param[in] std::string varName for Z field
+    //
+    void SetZFieldVariableName(std::string varName);
+
     //! Get the field variable names, e.g. used in flow integration.
     //! \retval vector<string> variable names. A vector of length 3
     //! containing variable names. The default is 3 empty variable names.
     //
     vector<string> GetFieldVariableNames() const;
 
+    //! Get the X field variable name, e.g. used in flow integration.
+    //! \retval std::string X field variable name.
+    //
+    std::string GetXFieldVariableName() const;
+
+    //! Get the Y field variable name, e.g. used in flow integration.
+    //! \retval std::string Y field variable name.
+    //
+    std::string GetYFieldVariableName() const;
+
+    //! Get the Z field variable name, e.g. used in flow integration.
+    //! \retval std::string Z field variable name.
+    //
+    std::string GetZFieldVariableName() const;
+
     //! Get the distribution variable names, e.g. used in flow integration.
     //! \retval vector<string> variable names
     vector<string> GetDistribVariableNames() const { return (GetValueStringVec(_distribVariableNamesTag)); }
-
-    //! Specify distribution variable names; e.g. used in flow integration
-    //! can be 0 or 3 strings
-    //! \param[in] string varNames. If any element is "0" the element
-    //! will be quietly
-    //! set to the empty string, "".
-    virtual void SetDistribVariableNames(vector<string> varNames) { SetValueStringVec(_distribVariableNamesTag, "Set Distrib Vars", varNames); }
 
     //! Virtual method sets current number of refinements of this Params.
     //! \param[in] int refinements
@@ -337,6 +360,18 @@ public:
     //! \param[in] Indicates whether we're using color mapped variables
     void SetDefaultVariables(int dim, bool secondaryColormapVariable);
 
+    //! Return the renderer's current dimension
+    //!
+    //! For renderers that are only capable of operating on variables of a fixed
+    //! dimensionality (e.g. 2D or 3D) this function will return a constant value:
+    //! the number of dimensions. For renderers that can operate on a variable of
+    //! varying dimension this method returns the current dimensionality. The
+    //! returned value will be between 0 and 3. A value of zero will be
+    //! returned if the current dimensionality cannot be determined.
+    //!
+    //!
+    virtual size_t GetRenderDim() const = 0;
+
     //! This should be overriden by params for renderes that support iso values to return true.
     virtual bool           HasIsoValues() const { return false; }
     virtual vector<double> GetIsoValues(const string &variable)
@@ -371,12 +406,8 @@ private:
     static const string _histoBoundsTag;
     static const string _cursorCoordsTag;
     static const string _terrainMapTag;
-    static const string _fieldVariableNamesTag;
     static const string _auxVariableNamesTag;
     static const string _distribVariableNamesTag;
-    static const string _constantOpacityTag;
-    static const string _CompressionLevelTag;
-    static const string _RefinementLevelTag;
     static const string _transferFunctionsTag;
     static const string _stretchFactorsTag;
     static const string _currentTimestepTag;
@@ -389,6 +420,13 @@ public:
     static const string _heightVariableNameTag;
     static const string _useSingleColorTag;
     static const string _constantColorTag;
+    static const string _CompressionLevelTag;
+    static const string _RefinementLevelTag;
+    //    static const string _fieldVariableNamesTag;
+    static const string _xFieldVariableNameTag;
+    static const string _yFieldVariableNameTag;
+    static const string _zFieldVariableNameTag;
+    static const string _constantOpacityTag;
 };
 
 //////////////////////////////////////////////////////////////////////////

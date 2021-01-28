@@ -1,33 +1,50 @@
 #include "PVariableSelector.h"
-#include "VCheckBox.h"
-#include "VLineItem.h"
-#include <vapor/ParamsBase.h>
 #include <vapor/RenderParams.h>
-#include <VComboBox.h>
 #include <assert.h>
 
 using VAPoR::Box;
 using VAPoR::RenderParams;
 
+#define NULL_TEXT "<none>"
+
 PVariableSelector::PVariableSelector(const std::string &tag, const std::string &label) : PStringDropdown(tag, {}, label) {}
 
 void PVariableSelector::updateGUI() const
 {
-    RenderParams *rp = dynamic_cast<RenderParams *>(getParams());
-    assert(rp && "Params must be RenderParams");
-    static_cast<void>(rp);    // Silence unused variable warning
-
     int nDims = getDimensionality();
 
     auto varNames = getDataMgr()->GetDataVarNames(nDims);
-    SetItems(varNames);
 
+    if (_addNull || getParamsString().empty()) varNames.insert(varNames.begin(), NULL_TEXT);
+
+    SetItems(varNames);
     PStringDropdown::updateGUI();
 }
 
-int PVariableSelector::getDimensionality() const
+bool PVariableSelector::isShown() const
 {
-    // return rp->GetBox()->GetOrientation() == Box::XY ? 2 : 3;
-
-    return getDataMgr()->GetNumDimensions(getParamsString());
+    if (_onlyShowForDim > 0) return getRendererDimension() == _onlyShowForDim;
+    return true;
 }
+
+int PVariableSelector::getRendererDimension() const { return getParams<RenderParams>()->GetRenderDim(); }
+
+int PVariableSelector::getDimensionality() const { return getRendererDimension(); }
+
+void PVariableSelector::dropdownTextChanged(std::string text)
+{
+    if (_addNull && text == NULL_TEXT) text = "";
+
+    PStringDropdown::dropdownTextChanged(text);
+}
+
+PScalarVariableSelector::PScalarVariableSelector() : PVariableSelector(RenderParams::_variableNameTag, "Variable Name") {}
+PColorMapVariableSelector::PColorMapVariableSelector() : PVariableSelector(RenderParams::_colorMapVariableNameTag, "Color mapped variable") {}
+PHeightVariableSelector::PHeightVariableSelector() : PVariableSelector2D(RenderParams::_heightVariableNameTag, "Height variable")
+{
+    AddNullOption();
+    OnlyShowForDim(2);
+}
+PXFieldVariableSelector::PXFieldVariableSelector() : PVariableSelector(RenderParams::_xFieldVariableNameTag, "X Field") { AddNullOption(); }
+PYFieldVariableSelector::PYFieldVariableSelector() : PVariableSelector(RenderParams::_yFieldVariableNameTag, "Y Field") { AddNullOption(); }
+PZFieldVariableSelector::PZFieldVariableSelector() : PVariableSelector(RenderParams::_zFieldVariableNameTag, "Z Field") { AddNullOption(); }

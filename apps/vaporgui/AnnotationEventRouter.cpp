@@ -45,6 +45,7 @@
 #include "AnnotationEventRouter.h"
 #include "vapor/ControlExecutive.h"
 #include "EventRouter.h"
+#include "PWidgets.h"
 
 using namespace VAPoR;
 
@@ -81,6 +82,18 @@ AnnotationEventRouter::AnnotationEventRouter(QWidget *parent, ControlExec *ce) :
 
     _animConnected = false;
     _ap = NULL;
+
+    // clang-format off
+    _axisArrowGroup = new PGroup({
+        new PSection("Orientation Arrows", {
+            (new PCheckbox(AnnotationParams::AxisArrowEnabledTag, "Show arrows (XYZ->RGB)")),
+            (new PDoubleSliderEdit(AnnotationParams::AxisArrowSizeTag, "Size"))->SetRange(0.f, 1.f)->EnableDynamicUpdate(),
+            (new PDoubleSliderEdit(AnnotationParams::AxisArrowXPosTag, "X Position"))->SetRange(0.f, 1.f)->EnableDynamicUpdate(),
+            (new PDoubleSliderEdit(AnnotationParams::AxisArrowYPosTag, "Y Position"))->SetRange(0.f, 1.f)->EnableDynamicUpdate()
+        })
+    });
+    layout()->addWidget(_axisArrowGroup);
+    // clang-format on
 }
 
 AnnotationEventRouter::~AnnotationEventRouter() {}
@@ -99,9 +112,6 @@ void AnnotationEventRouter::connectAnnotationWidgets()
     connect(yTicOrientationCombo, SIGNAL(activated(int)), this, SLOT(setYTicOrientation(int)));
     connect(zTicOrientationCombo, SIGNAL(activated(int)), this, SLOT(setZTicOrientation(int)));
     connect(copyRegionButton, SIGNAL(pressed()), this, SLOT(copyRegionFromRenderer()));
-    connect(_arrowXEdit, SIGNAL(returnPressed()), this, SLOT(setXArrowPosition()));
-    connect(_arrowYEdit, SIGNAL(returnPressed()), this, SLOT(setYArrowPosition()));
-    connect(_arrowZEdit, SIGNAL(returnPressed()), this, SLOT(setZArrowPosition()));
     connect(_timeCombo, SIGNAL(activated(int)), this, SLOT(timeAnnotationChanged()));
     connect(_timeLLXEdit, SIGNAL(returnPressed()), this, SLOT(timeLLXChanged()));
     connect(_timeLLYEdit, SIGNAL(returnPressed()), this, SLOT(timeLLYChanged()));
@@ -112,7 +122,6 @@ void AnnotationEventRouter::connectAnnotationWidgets()
     connect(domainColorButton, SIGNAL(clicked()), this, SLOT(setDomainColor()));
     connect(domainFrameCheckbox, SIGNAL(clicked()), this, SLOT(setDomainFrameEnabled()));
     connect(regionColorButton, SIGNAL(clicked()), this, SLOT(setRegionColor()));
-    connect(_axisArrowCheckbox, SIGNAL(clicked()), this, SLOT(setAxisArrowsEnabled()));
 }
 
 void AnnotationEventRouter::GetWebHelp(vector<pair<string, string>> &help) const
@@ -134,13 +143,7 @@ void AnnotationEventRouter::_updateTab()
 
     domainFrameCheckbox->setChecked(vParams->GetUseDomainFrame());
 
-    // Axis arrows:
-    //
-    vector<double> axisArrowCoords = vParams->GetAxisArrowCoords();
-    _arrowXEdit->setText(QString::number(axisArrowCoords[0]));
-    _arrowYEdit->setText(QString::number(axisArrowCoords[1]));
-    _arrowZEdit->setText(QString::number(axisArrowCoords[2]));
-    _axisArrowCheckbox->setChecked(vParams->GetShowAxisArrows());
+    _axisArrowGroup->Update(vParams);
 
     return;
 }
@@ -303,7 +306,7 @@ void AnnotationEventRouter::scaleWorldCoordsToNormalized(std::vector<double> &co
 void AnnotationEventRouter::updateAxisTable()
 {
     AxisAnnotation *aa = _getCurrentAxisAnnotation();
-    bool            annotationEnabled = aa->GetLatLonAxesEnabled();
+    bool            latLonEnabled = aa->GetLatLonAxesEnabled();
 
     vector<double> tableValues;
 
@@ -314,27 +317,26 @@ void AnnotationEventRouter::updateAxisTable()
     tableValues.insert(tableValues.end(), ticSizes.begin(), ticSizes.end());
 
     vector<double> minTics = aa->GetMinTics();
+    vector<double> maxTics = aa->GetMaxTics();
     scaleNormalizedCoordsToWorld(minTics);
-    if (annotationEnabled) {
-        convertPCSToLon(minTics[0]);
-        convertPCSToLat(minTics[1]);
+    scaleNormalizedCoordsToWorld(maxTics);
+    if (latLonEnabled) {
+        // converPCSToLonLat() modifies inputs by reference, so we need dummy
+        // variables that can be discarded in order to do use these values
+        // multiple times.
+        //
+        double minX = minTics[0];
+        double minY = minTics[1];
+        convertPCSToLonLat(minTics[0], minTics[1]);    // min X, min Y
+        convertPCSToLonLat(minX, maxTics[1]);          // min X, max Y
+        convertPCSToLonLat(maxTics[0], minY);          // max X, min Y
     }
     tableValues.insert(tableValues.end(), minTics.begin(), minTics.end());
-
-    vector<double> maxTics = aa->GetMaxTics();
-    scaleNormalizedCoordsToWorld(maxTics);
-    if (annotationEnabled) {
-        convertPCSToLon(maxTics[0]);
-        convertPCSToLat(maxTics[1]);
-    }
     tableValues.insert(tableValues.end(), maxTics.begin(), maxTics.end());
 
     vector<double> origin = aa->GetAxisOrigin();
     scaleNormalizedCoordsToWorld(origin);
-    if (annotationEnabled) {
-        convertPCSToLon(origin[0]);
-        convertPCSToLat(origin[1]);
-    }
+    if (latLonEnabled) { convertPCSToLonLat(origin[0], origin[1]); }
     tableValues.insert(tableValues.end(), origin.begin(), origin.end());
 
     vector<string> rowHeaders;
@@ -497,6 +499,8 @@ void AnnotationEventRouter::axisAnnotationTableChanged()
     AxisAnnotation *aa = _getCurrentAxisAnnotation();
     bool            annotateLatLon = aa->GetLatLonAxesEnabled();
 
+    ParamsMgr *paramsMgr = _controlExec->GetParamsMgr();
+    paramsMgr->BeginSaveStateGroup("Annotation table changed");
     std::vector<double> numTics = getTableRow(0);
     for (int i = 0; i < numTics.size(); i++) { numTics[i] = round(numTics[i]); }
     aa->SetNumTics(numTics);
@@ -505,28 +509,29 @@ void AnnotationEventRouter::axisAnnotationTableChanged()
     aa->SetTicSize(ticSizes);
 
     std::vector<double> minTics = getTableRow(2);
-    if (annotateLatLon) {
-        convertLonToPCS(minTics[0]);
-        convertLatToPCS(minTics[1]);
-    }
-    scaleWorldCoordsToNormalized(minTics);
-    aa->SetMinTics(minTics);
-
     std::vector<double> maxTics = getTableRow(3);
     if (annotateLatLon) {
-        convertLonToPCS(maxTics[0]);
-        convertLatToPCS(maxTics[1]);
+        // converLonLatToPCS() modifies inputs by reference, so we need dummy
+        // variables that can be discarded in order to do use these values
+        // multiple times.
+        //
+        double minLon = minTics[0];
+        double minLat = minTics[1];
+        convertLonLatToPCS(minTics[0], minTics[1]);    // min lon, min lat
+        convertLonLatToPCS(maxTics[0], minLat);        // max lon, min lat
+        convertLonLatToPCS(minLon, maxTics[1]);        // min lon, max lat
     }
+    scaleWorldCoordsToNormalized(minTics);
     scaleWorldCoordsToNormalized(maxTics);
+    aa->SetMinTics(minTics);
     aa->SetMaxTics(maxTics);
 
     std::vector<double> origins = getTableRow(4);
-    if (annotateLatLon) {
-        convertLonToPCS(origins[0]);
-        convertLatToPCS(origins[1]);
-    }
+    if (annotateLatLon) { convertLonLatToPCS(origins[0], origins[1]); }
     scaleWorldCoordsToNormalized(origins);
     aa->SetAxisOrigin(origins);
+
+    paramsMgr->EndSaveStateGroup();
 }
 
 vector<double> AnnotationEventRouter::getTableRow(int row)
@@ -845,31 +850,4 @@ void AnnotationEventRouter::setAxisTextSize(int size)
 {
     AxisAnnotation *aa = _getCurrentAxisAnnotation();
     aa->SetAxisFontSize(size);
-}
-
-void AnnotationEventRouter::setAxisArrowsEnabled()
-{
-    AnnotationParams *aParams = (AnnotationParams *)GetActiveParams();
-    aParams->SetShowAxisArrows(_axisArrowCheckbox->isChecked());
-}
-
-void AnnotationEventRouter::setXArrowPosition()
-{
-    AnnotationParams *aParams = (AnnotationParams *)GetActiveParams();
-    float             pos = _arrowXEdit->text().toFloat();
-    aParams->SetXAxisArrowPosition(pos);
-}
-
-void AnnotationEventRouter::setYArrowPosition()
-{
-    AnnotationParams *aParams = (AnnotationParams *)GetActiveParams();
-    float             pos = _arrowYEdit->text().toFloat();
-    aParams->SetYAxisArrowPosition(pos);
-}
-
-void AnnotationEventRouter::setZArrowPosition()
-{
-    AnnotationParams *aParams = (AnnotationParams *)GetActiveParams();
-    float             pos = _arrowZEdit->text().toFloat();
-    aParams->SetZAxisArrowPosition(pos);
 }

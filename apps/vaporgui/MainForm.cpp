@@ -84,6 +84,13 @@
 #include "MouseModeParams.h"
 #include "ParamsWidgetDemo.h"
 
+#include <QProgressDialog>
+#include <QProgressBar>
+#include <QToolButton>
+#include <QStyle>
+#include <vapor/Progress.h>
+#include <vapor/OSPRay.h>
+
 // Following shortcuts are provided:
 // CTRL_N: new session
 // CTRL_O: open session
@@ -233,7 +240,6 @@ void MainForm::_initMembers()
     _pythonVariables = NULL;
     _banner = NULL;
     _windowSelector = NULL;
-    _modeStatusWidget = NULL;
     _controlExec = NULL;
     _paramsMgr = NULL;
     _tabMgr = NULL;
@@ -247,6 +253,67 @@ void MainForm::_initMembers()
     _eventsSinceLastSave = 0;
     _buttonPressed = false;
 }
+
+class ProgressStatusBar : public QWidget {
+    QLabel *      _titleLabel = new QLabel;
+    QProgressBar *_progressBar = new QProgressBar;
+    QToolButton * _cancelButton = new QToolButton;
+
+    bool _canceled = false;
+
+public:
+    ProgressStatusBar()
+    {
+        QHBoxLayout *layout = new QHBoxLayout;
+        layout->setMargin(4);
+        setLayout(layout);
+
+        _cancelButton->setIcon(_cancelButton->style()->standardIcon(QStyle::StandardPixmap::SP_DialogCancelButton));
+        QObject::connect(_cancelButton, &QAbstractButton::clicked, this, [this]() {
+            _canceled = true;
+            Finish();
+            SetTitle("Cancelled.");
+        });
+
+        QSizePolicy sp = _cancelButton->sizePolicy();
+        sp.setRetainSizeWhenHidden(true);
+        _cancelButton->setSizePolicy(sp);
+        _cancelButton->setIconSize(_cancelButton->iconSize() * 0.7);
+        _cancelButton->setToolTip("Cancel");
+
+        layout->addWidget(_titleLabel);
+        layout->addWidget(_progressBar);
+        layout->addWidget(_cancelButton);
+
+        Finish();
+    }
+    void SetTitle(const string &title) { _titleLabel->setText(QString::fromStdString(title)); }
+    void SetTotal(long total) { _progressBar->setRange(0, total); }
+    void SetCancelable(bool b) { _cancelButton->setEnabled(b); }
+    void SetDone(long done) { _progressBar->setValue(done); }
+    bool Cancelled() { return _canceled; }
+    void StartTask(const string &title, long total, bool cancelable)
+    {
+        Reset();
+        SetTitle(title);
+        SetTotal(total);
+        SetCancelable(cancelable);
+        _progressBar->show();
+        _cancelButton->show();
+    }
+    void Finish()
+    {
+        _progressBar->hide();
+        _cancelButton->hide();
+        SetTitle("");
+    }
+    void Reset()
+    {
+        _canceled = false;
+        _progressBar->reset();
+    }
+    const QObject *GetCancelButtonObject() const { return _cancelButton; }
+};
 
 // Only the main program should call the constructor:
 //
@@ -314,10 +381,7 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
 
     _paramsMgr = _controlExec->GetParamsMgr();
     _paramsMgr->RegisterStateChangeCB(std::bind(&MainForm::_stateChangeCB, this));
-    _paramsMgr->RegisterIntermediateStateChangeCB([this]() {
-        QEvent *event = new QEvent(ParamsIntermediateChangeEvent);
-        QApplication::postEvent(this, event);
-    });
+    _paramsMgr->RegisterIntermediateStateChangeCB(std::bind(&MainForm::_intermediateStateChangedCB, this));
     _paramsMgr->RegisterStateChangeFlag(&_stateChangeFlag);
 
     // Set Defaults from startup file
@@ -346,14 +410,27 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
 
     _tabMgr->setMinimumHeight(500);
 
-    _tabDockWindow->setWidget(_tabMgr);
+    QWidget *    sidebar = new QWidget;
+    QVBoxLayout *sidebarLayout = new QVBoxLayout;
+    sidebarLayout->setMargin(0);
+    sidebarLayout->setSpacing(0);
+    sidebar->setLayout(sidebarLayout);
+    sidebarLayout->addWidget(_tabMgr);
+
+    _status = new ProgressStatusBar;
+    sidebarLayout->addWidget(_status);
+    _status->hide();
+
+    _tabDockWindow->setWidget(sidebar);
 
     createMenus();
 
     createToolBars();
 
+    _createProgressWidget();
+
     addMouseModes();
-    (void)statusBar();
+    //    (void)statusBar();
     _main_Menubar->adjustSize();
     hookupSignals();
     enableWidgets(false);
@@ -363,7 +440,7 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
 
     setUpdatesEnabled(true);
 
-    show();
+    //    show();
 
     // Command line options:
     //
@@ -373,8 +450,14 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
     //
 
     if (files.size() && files[0].endsWith(".vs3")) {
-        sessionOpen(files[0]);
+        bool loadDatasetsFromSession = files.size() == 1;
+        sessionOpen(files[0], loadDatasetsFromSession);
         files.erase(files.begin());
+
+        if (!loadDatasetsFromSession && _controlExec->GetDataNames().size() > 1) {
+            fprintf(stderr, "Cannot replace dataset from command line in session which contains multiple open datasets.");
+            exit(1);
+        }
     } else {
         sessionNew();
     }
@@ -385,7 +468,7 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
 
         string fmt;
         if (determineDatasetFormat(paths, &fmt)) {
-            loadDataHelper(paths, "", "", fmt, true);
+            loadDataHelper(paths, "", "", fmt, true, ReplaceFirst);
         } else {
             MSG_ERR("Could not determine dataset format for command line parameters");
         }
@@ -399,6 +482,50 @@ MainForm::MainForm(vector<QString> files, QApplication *app, QWidget *parent) : 
     _controlExec->RebaseStateSave();
 }
 
+int MainForm::RenderAndExit(int start, int end, const std::string &baseFile, int width, int height)
+{
+    if (start == 0 && end == 0) end = INT_MAX;
+    start = std::max(0, start);
+
+    if (_sessionNewFlag) {
+        fprintf(stderr, "No session loaded\n");
+        return -1;
+    }
+
+    QString   dir = QString::fromStdString(FileUtils::Dirname(baseFile));
+    QFileInfo dirInfo(dir);
+    if (!dirInfo.isWritable()) {
+        fprintf(stderr, "Do not have write permissions\n");
+        return -1;
+    }
+
+    auto baseFileWithTS = FileUtils::RemoveExtension(baseFile) + "-" + to_string(start) + "." + FileUtils::Extension(baseFile);
+
+    auto ap = GetAnimationParams();
+    auto vpp = _paramsMgr->GetViewpointParams(GetStateParams()->GetActiveVizName());
+
+    _paramsMgr->BeginSaveStateGroup("test");
+    startAnimCapture(baseFileWithTS);
+    ap->SetStartTimestep(start);
+    ap->SetEndTimestep(end);
+
+    vpp->SetValueLong(vpp->UseCustomFramebufferTag, "", true);
+    vpp->SetValueLong(vpp->CustomFramebufferWidthTag, "", width);
+    vpp->SetValueLong(vpp->CustomFramebufferHeightTag, "", height);
+
+    _tabMgr->AnimationPlayForward();
+    _paramsMgr->EndSaveStateGroup();
+
+    connect(_tabMgr, &TabManager::AnimationOnOffSignal, this, [this]() {
+        endAnimCapture();
+        close();
+    });
+
+    connect(_tabMgr, &TabManager::AnimationDrawSignal, this, [this]() { printf("Rendering timestep %li\n", GetAnimationParams()->GetCurrentTimestep()); });
+
+    return 0;
+}
+
 /*
  *  Destroys the object and frees any allocated resources
  */
@@ -406,9 +533,15 @@ MainForm::~MainForm()
 {
     if (_paramsWidgetDemo) { _paramsWidgetDemo->close(); }
 
-    if (_modeStatusWidget) delete _modeStatusWidget;
     if (_banner) delete _banner;
     if (_controlExec) delete _controlExec;
+
+    // This is required since if the user quits during the progressbar update,
+    // qt will process the quit event and delete things, and then it will
+    // return to the original event loop.
+    // When Qt does recursive event loops like this, it has backend code that
+    // prevents users from quiting.
+    if (_insideMessedUpQtEventLoop) exit(0);
 
     // no need to delete child widgets, Qt does it all for us?? (see closeEvent)
 }
@@ -616,6 +749,71 @@ void MainForm::createToolBars()
     _createModeToolBar();
     _createAnimationToolBar();
     _createVizToolBar();
+}
+
+void MainForm::_createProgressWidget()
+{
+#define MAX_UPDATES_PER_SEC    10
+#define MILLIS_BETWEEN_UPDATES (1000 / MAX_UPDATES_PER_SEC)
+    _progressLastUpdateTime = std::chrono::system_clock::now();
+
+    Progress::Update_t update = [this](long done, bool *cancelled) {
+        if (!_progressEnabled) return;
+
+        // Limit updates per second for perfomance reasons since this is on the same
+        // thread as the calculation
+        auto now = std::chrono::system_clock::now();
+        auto duration = chrono::duration_cast<chrono::milliseconds>(now - _progressLastUpdateTime);
+        if (duration.count() < MILLIS_BETWEEN_UPDATES || _insideMessedUpQtEventLoop) return;
+        _progressLastUpdateTime = now;
+
+        // Qt will clear the currently bound framebuffer for some reason
+        bool insideOpenGL = isOpenGLContextActive();
+        if (insideOpenGL && _progressSavedFB < 0) {
+            glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &_progressSavedFB);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        _status->SetDone(done);
+        _disableUserInputForAllExcept = _status->GetCancelButtonObject();
+        _insideMessedUpQtEventLoop = true;
+        QCoreApplication::processEvents();
+        _disableUserInputForAllExcept = nullptr;
+        _insideMessedUpQtEventLoop = false;
+        *cancelled = _status->Cancelled();
+
+        if (insideOpenGL && _progressSavedFB >= 0) {
+            glBindFramebuffer(GL_FRAMEBUFFER, _progressSavedFB);
+            _progressSavedFB = -1;
+        }
+    };
+
+    Progress::Start_t start = [this, update](const std::string &name, long total, bool cancelable) {
+        if (!_progressEnabled) return;
+
+        _status->StartTask(name, total, cancelable);
+        update(0, &cancelable);
+    };
+
+    Progress::Finish_t finish = [this, update]() {
+        if (!_progressEnabled) return;
+
+        _status->Finish();
+        bool b;
+        update(0, &b);
+    };
+
+    Progress::SetHandlers(start, update, finish);
+    _status->show();
+    if (_progressEnabledMenuItem) _progressEnabledMenuItem->setChecked(true);
+}
+
+void MainForm::_disableProgressWidget()
+{
+    Progress::Finish();
+    Progress::SetHandlers([](const string &, long, bool) {}, [](long, bool *) {}, []() {});
+    _status->hide();
+    if (_progressEnabledMenuItem) _progressEnabledMenuItem->setChecked(false);
 }
 
 void MainForm::hookupSignals()
@@ -886,6 +1084,21 @@ void MainForm::_createDeveloperMenu()
 
     _developerMenu = menuBar()->addMenu("Developer");
     _developerMenu->addAction("Show PWidget Demo", _paramsWidgetDemo, &QWidget::show);
+
+    QAction *enableProgress = new QAction(QString("Enable Progress Bar"), nullptr);
+    enableProgress->setCheckable(true);
+    QObject::connect(enableProgress, &QAction::toggled, [this](bool checked) {
+        if (checked)
+            _createProgressWidget();
+        else
+            _disableProgressWidget();
+    });
+    _developerMenu->addAction(enableProgress);
+    _progressEnabledMenuItem = enableProgress;
+
+#ifdef BUILD_OSPRAY
+    _developerMenu->addAction(QString::fromStdString("OSPRay " + VOSP::Version()))->setDisabled(true);
+#endif
 }
 
 void MainForm::createMenus()
@@ -904,7 +1117,7 @@ void MainForm::createMenus()
 #endif
 }
 
-void MainForm::sessionOpenHelper(string fileName)
+void MainForm::sessionOpenHelper(string fileName, bool loadDatasets)
 {
     // Clear out the current session:
 
@@ -934,21 +1147,29 @@ void MainForm::sessionOpenHelper(string fileName)
     GUIStateParams *newP = GetStateParams();
     dataSetNames = newP->GetOpenDataSetNames();
 
-    for (int i = 0; i < dataSetNames.size(); i++) {
-        string         name = dataSetNames[i];
-        vector<string> paths = newP->GetOpenDataSetPaths(name);
-        if (std::all_of(paths.begin(), paths.end(), [](string path) { return FileUtils::Exists(path); })) {
-            loadDataHelper(paths, "", "", newP->GetOpenDataSetFormat(name), true, false);
-        } else {
-            newP->RemoveOpenDateSet(name);
+    if (loadDatasets) {
+        for (int i = 0; i < dataSetNames.size(); i++) {
+            string         name = dataSetNames[i];
+            vector<string> paths = newP->GetOpenDataSetPaths(name);
+            if (std::all_of(paths.begin(), paths.end(), [](string path) { return FileUtils::Exists(path); })) {
+                loadDataHelper(paths, "", "", newP->GetOpenDataSetFormat(name), true, DatasetExistsAction::AddNew);
+            } else {
+                newP->RemoveOpenDateSet(name);
+            }
         }
+    } else {
+        for (auto name : dataSetNames) newP->RemoveOpenDateSet(name);
     }
 
     _vizWinMgr->Restart();
     _tabMgr->Restart();
+
+    // Close data can't be undone
+    //
+    _controlExec->UndoRedoClear();
 }
 
-void MainForm::sessionOpen(QString qfileName)
+void MainForm::sessionOpen(QString qfileName, bool loadDatasets)
 {
     // Disable "Are you sure?" popup in debug build
 #ifdef NDEBUG
@@ -984,9 +1205,11 @@ void MainForm::sessionOpen(QString qfileName)
         return;
     }
 
+    _paramsMgr->BeginSaveStateGroup("Load state");
+
     string fileName = qfileName.toStdString();
     _sessionNewFlag = false;
-    sessionOpenHelper(fileName);
+    sessionOpenHelper(fileName, loadDatasets);
 
     GUIStateParams *p = GetStateParams();
     p->SetCurrentSessionFile(fileName);
@@ -1002,10 +1225,17 @@ void MainForm::sessionOpen(QString qfileName)
     state->GetActiveRenderer(vizWin, activeRendererType, activeRendererName);
     _controlExec->RenderLookup(activeRendererName, vizWin, activeDataSetName, activeRendererType);
 
-    if (STLUtils::Contains(openDataSetNames, activeDataSetName))
+    if (STLUtils::Contains(openDataSetNames, activeDataSetName)) {
         _tabMgr->SetActiveRenderer(vizWin, activeRendererType, activeRendererName);
-    else
+    } else {
         _tabMgr->HideRenderWidgets();
+    }
+
+    _paramsMgr->EndSaveStateGroup();
+
+    // Session load can't currently be undone
+    //
+    _controlExec->UndoRedoClear();
 
     _stateChangeCB();
 }
@@ -1064,12 +1294,24 @@ void MainForm::fileExit() { close(); }
 
 void MainForm::_stateChangeCB()
 {
+    if (_paramsEventQueued) return;
+    _paramsEventQueued = true;
+
     // Generate an application event whenever state changes
     //
     QEvent *event = new QEvent(ParamsChangeEvent);
     QApplication::postEvent(this, event);
 
     _eventsSinceLastSave++;
+}
+
+void MainForm::_intermediateStateChangedCB()
+{
+    if (_paramsEventQueued) return;
+    _paramsEventQueued = true;
+
+    QEvent *event = new QEvent(ParamsIntermediateChangeEvent);
+    QApplication::postEvent(this, event);
 }
 
 void MainForm::undoRedoHelper(bool undo)
@@ -1079,10 +1321,20 @@ void MainForm::undoRedoHelper(bool undo)
     bool enabled = _controlExec->GetSaveStateEnabled();
     _controlExec->SetSaveStateEnabled(false);
 
-    bool status;
-    _vizWinMgr->Shutdown();
+    bool visualizerEvent = false;
+    if (undo) {
+        visualizerEvent = ((_paramsMgr->GetTopUndoDesc() == _controlExec->GetRemoveVisualizerUndoTag()) || (_paramsMgr->GetTopUndoDesc() == _controlExec->GetNewVisualizerUndoTag()));
+    } else {
+        visualizerEvent = ((_paramsMgr->GetTopRedoDesc() == _controlExec->GetRemoveVisualizerUndoTag()) || (_paramsMgr->GetTopRedoDesc() == _controlExec->GetNewVisualizerUndoTag()));
+    }
+
+    // Visualizer create/destroy undo/redo events require special
+    // handling.
+    //
+    if (visualizerEvent) { _vizWinMgr->Shutdown(); }
     _tabMgr->Shutdown();
 
+    bool status = true;
     if (undo) {
         status = _controlExec->Undo();
     } else {
@@ -1094,7 +1346,7 @@ void MainForm::undoRedoHelper(bool undo)
         return;
     }
 
-    _vizWinMgr->Restart();
+    if (visualizerEvent) { _vizWinMgr->Restart(); }
     _tabMgr->Restart();
 
     // Restore state saving
@@ -1141,6 +1393,10 @@ void MainForm::closeDataHelper(string dataSetName)
     p->RemoveOpenDateSet(dataSetName);
 
     _controlExec->CloseData(dataSetName);
+
+    // Close data can't be undone
+    //
+    _controlExec->UndoRedoClear();
 }
 
 // Open a data set and remove from database. If data with same name
@@ -1150,14 +1406,6 @@ bool MainForm::openDataHelper(string dataSetName, string format, const vector<st
 {
     GUIStateParams *p = GetStateParams();
     vector<string>  dataSetNames = p->GetOpenDataSetNames();
-
-#ifdef VAPOR3_0_0_ALPHA
-    // If data set with this name already exists, close it
-    //
-    for (int i = 0; i < dataSetNames.size(); i++) {
-        if (dataSetNames[i] == dataSetName) { closeDataHelper(dataSetName); }
-    }
-#endif
 
     // Open the data set
     //
@@ -1175,10 +1423,13 @@ bool MainForm::openDataHelper(string dataSetName, string format, const vector<st
 
     _tabMgr->LoadDataNotify(dataSetName);
 
+    // Opening data is not an undoable event :-(
+    //
+    _controlExec->UndoRedoClear();
     return (true);
 }
 
-void MainForm::loadDataHelper(const vector<string> &files, string prompt, string filter, string format, bool multi, bool promptToReplaceExistingDataset)
+void MainForm::loadDataHelper(const vector<string> &files, string prompt, string filter, string format, bool multi, DatasetExistsAction existsAction)
 {
     vector<string> myFiles = files;
 
@@ -1207,7 +1458,7 @@ void MainForm::loadDataHelper(const vector<string> &files, string prompt, string
 
     // Generate data set name
     //
-    string dataSetName = _getDataSetName(myFiles[0], promptToReplaceExistingDataset);
+    string dataSetName = _getDataSetName(myFiles[0], existsAction);
     if (dataSetName.empty()) return;
 
     vector<string> options = {"-project_to_pcs", "-vertical_xform"};
@@ -1218,7 +1469,7 @@ void MainForm::loadDataHelper(const vector<string> &files, string prompt, string
     }
 
     bool status = openDataHelper(dataSetName, format, myFiles, options);
-    if (!status) return;
+    if (!status) { return; }
 
     // Reinitialize all tabs
     //
@@ -1239,6 +1490,10 @@ void MainForm::loadDataHelper(const vector<string> &files, string prompt, string
     enableWidgets(true);
 
     _timeStepEditValidator->setRange(0, ds->GetTimeCoordinates().size() - 1);
+
+    // Opening data is not an undoable event :-(
+    //
+    _controlExec->UndoRedoClear();
 }
 
 // Load data into current session
@@ -1270,6 +1525,12 @@ void MainForm::closeData(string fileName)
 
     _tabMgr->Update();
     _vizWinMgr->Reinit();
+
+    // Close data can't be undone
+    //
+    _controlExec->UndoRedoClear();
+
+    if (!_controlExec->GetDataNames().size()) { sessionNew(); }
 }
 
 // import WRF data into current session
@@ -1363,9 +1624,17 @@ void MainForm::sessionNew()
     }
 #endif
 
+    _paramsMgr->BeginSaveStateGroup("Load state");
+
     sessionOpenHelper("");
 
     _vizWinMgr->LaunchVisualizer();
+
+    _paramsMgr->EndSaveStateGroup();
+
+    // Session load can't currently be undone
+    //
+    _controlExec->UndoRedoClear();
 
     _stateChangeFlag = false;
     _sessionNewFlag = true;
@@ -1425,15 +1694,6 @@ void MainForm::modeChange(int newmode)
     }
 
     _navigationAction->setChecked(false);
-
-    if (_modeStatusWidget) {
-        statusBar()->removeWidget(_modeStatusWidget);
-        delete _modeStatusWidget;
-    }
-
-    _modeStatusWidget = new QLabel(QString::fromStdString(modeName) + " Mode: To modify box in scene, grab handle with left mouse to translate, right mouse to stretch", this);
-
-    statusBar()->addWidget(_modeStatusWidget, 2);
 }
 
 void MainForm::showCitationReminder()
@@ -1538,6 +1798,8 @@ void MainForm::_setProj4String(string proj4String)
 
     vector<string> dataSets = p->GetOpenDataSetNames();
 
+    _paramsMgr->BeginSaveStateGroup("Set proj4 string");
+
     // Close and re-open all data with new
     // proj4 string
     //
@@ -1560,12 +1822,46 @@ void MainForm::_setProj4String(string proj4String)
 
     for (int i = 0; i < dataSets.size(); i++) { (void)openDataHelper(dataSets[i], formatsMap[i], filesMap[i], options); }
 
+    _paramsMgr->EndSaveStateGroup();
+
+    // Map projection changes can't currently be undone
+    //
+    _controlExec->UndoRedoClear();
+
     _App->installEventFilter(this);
 }
 
 bool MainForm::eventFilter(QObject *obj, QEvent *event)
 {
     VAssert(_controlExec && _vizWinMgr);
+
+    if (_insideMessedUpQtEventLoop) {
+        // Prevent menu item actions from running
+        if (event->type() == QEvent::MetaCall) return true;
+        // Prevent queued ParamsChangedEvents from recursively running
+        if (event->type() == ParamsChangeEvent) {
+            _paramsEventQueued = false;
+            return true;
+        }
+        if (event->type() == ParamsIntermediateChangeEvent) {
+            _paramsEventQueued = false;
+            return true;
+        }
+        // Prevent user input for all widgets except the cancel button. This is essentially
+        // the same behavior as we had before because the application would
+        // freeze during a render so all user input was essentially blocked.
+        // Since the events are processed top-down, we need to check to check
+        // if this is not only the cancel button, but any of its parents
+        if (_disableUserInputForAllExcept != nullptr && obj->isWidgetType()) {
+            if (dynamic_cast<QInputEvent *>(event)) {
+                const QObject *test = _disableUserInputForAllExcept;
+                do {
+                    if (obj == test) return false;    // Approve input
+                } while (test = test->parent());
+                return true;    // Reject input
+            }
+        }
+    }
 
     // Only update the GUI if the Params state has changed
     //
@@ -1586,11 +1882,19 @@ bool MainForm::eventFilter(QObject *obj, QEvent *event)
 
         // force visualizer redraw
         //
-        _vizWinMgr->Update(false);
+        if (_animationCapture == false) {
+            menuBar()->setEnabled(false);
+            _progressEnabled = true;
+            _vizWinMgr->Update(false);
+            _progressEnabled = false;
+            menuBar()->setEnabled(true);
+        }
 
         update();
 
         QApplication::restoreOverrideCursor();
+
+        _paramsEventQueued = false;
         return (false);
     }
 
@@ -1600,7 +1904,9 @@ bool MainForm::eventFilter(QObject *obj, QEvent *event)
 
         // force visualizer redraw
         //
+        _progressEnabled = true;
         _vizWinMgr->Update(true);
+        _progressEnabled = false;
 
 #ifndef NDEBUG
         _paramsWidgetDemo->Update(GetStateParams(), _paramsMgr);
@@ -1608,6 +1914,7 @@ bool MainForm::eventFilter(QObject *obj, QEvent *event)
 
         //        update();
 
+        _paramsEventQueued = false;
         return (false);
     }
 
@@ -1644,6 +1951,12 @@ void MainForm::updateMenus()
     // Turn off jpeg and png capture if we're in MapOrthographic mode
     ViewpointParams *VPP;
     VPP = _paramsMgr->GetViewpointParams(GetStateParams()->GetActiveVizName());
+
+    // If there are no visualizers (can only happen if user deletes them)
+    // then there are no ViewpointParams. See GitHub issue #1636
+    //
+    if (!VPP) return;
+
     if (VPP->GetProjectionType() == ViewpointParams::MapOrthographic) {
         if (_captureSingleJpegAction->isEnabled()) _captureSingleJpegAction->setEnabled(false);
         if (_captureSinglePngAction->isEnabled()) _captureSinglePngAction->setEnabled(false);
@@ -1804,15 +2117,25 @@ void MainForm::installCLITools()
     string binPath = home + "/MacOS";
     home.erase(home.size() - strlen("Contents/"), strlen("Contents/"));
 
-    string profilePath = string(getenv("HOME")) + "/.profile";
-    FILE * prof = fopen(profilePath.c_str(), "a");
-    if (prof) {
-        fprintf(prof, "\n");
-        fprintf(prof, "export VAPOR_HOME=\"%s\"\n", home.c_str());
-        fprintf(prof, "export PATH=\"%s:$PATH\"\n", binPath.c_str());
-        fclose(prof);
+    vector<string> profilePaths = {
+        string(getenv("HOME")) + "/.profile",
+        string(getenv("HOME")) + "/.zshrc",
+    };
+    bool success = true;
 
-        box.setText("Environmental variables set in ~/.profile");
+    for (auto profilePath : profilePaths) {
+        FILE *prof = fopen(profilePath.c_str(), "a");
+        success &= (bool)prof;
+        if (prof) {
+            fprintf(prof, "\n\n");
+            fprintf(prof, "export VAPOR_HOME=\"%s\"\n", home.c_str());
+            fprintf(prof, "export PATH=\"%s:$PATH\"\n", binPath.c_str());
+            fclose(prof);
+        }
+    }
+
+    if (success) {
+        box.setText("Environmental variables set in ~/.profile and ~/.zshrc");
         box.setInformativeText("Please log out and log back in for changes to take effect.");
         box.setIcon(QMessageBox::Information);
     } else {
@@ -1948,27 +2271,27 @@ void MainForm::captureJpegSequence()
 {
     string filter = "JPG (*.jpg *.jpeg)";
     string defaultSuffix = "jpg";
-    startAnimCapture(filter, defaultSuffix);
+    selectAnimCatureOutput(filter, defaultSuffix);
 }
 
 void MainForm::capturePngSequence()
 {
     string filter = "PNG (*.png)";
     string defaultSuffix = "png";
-    startAnimCapture(filter, defaultSuffix);
+    selectAnimCatureOutput(filter, defaultSuffix);
 }
 
 void MainForm::captureTiffSequence()
 {
     string filter = "TIFF (*.tif *.tiff)";
     string defaultSuffix = "tiff";
-    startAnimCapture(filter, defaultSuffix);
+    selectAnimCatureOutput(filter, defaultSuffix);
 }
 
 // Begin capturing animation images.
 // Launch a file save dialog to specify the names
 // Then start file saving mode.
-void MainForm::startAnimCapture(string filter, string defaultSuffix)
+void MainForm::selectAnimCatureOutput(string filter, string defaultSuffix)
 {
     showCitationReminder();
     auto imageDir = QDir::homePath();
@@ -1980,7 +2303,14 @@ void MainForm::startAnimCapture(string filter, string defaultSuffix)
     // Extract the path, and the root name, from the returned string.
     QStringList qsl = fileDialog.selectedFiles();
     if (qsl.isEmpty()) return;
-    QString   fileName = qsl[0];
+    QString fileName = qsl[0];
+
+    startAnimCapture(fileName.toStdString(), defaultSuffix);
+}
+
+void MainForm::startAnimCapture(string baseFile, string defaultSuffix)
+{
+    QString   fileName = QString::fromStdString(baseFile);
     QFileInfo fileInfo = QFileInfo(fileName);
 
     QString suffix = fileInfo.suffix();
@@ -2041,6 +2371,7 @@ void MainForm::startAnimCapture(string filter, string defaultSuffix)
     }
 
     // Turn on "image capture mode" in the current active visualizer
+    _animationCapture = true;
     GUIStateParams *p = GetStateParams();
     string          vizName = p->GetActiveVizName();
     _controlExec->EnableAnimationCapture(vizName, true, fpath);
@@ -2066,6 +2397,8 @@ void MainForm::endAnimCapture()
     if (vizName != _capturingAnimationVizName) { MSG_WARN("Terminating capture in non-active visualizer"); }
     if (_controlExec->EnableAnimationCapture(_capturingAnimationVizName, false)) MSG_WARN("Image Capture Warning;\nCurrent active visualizer is not capturing images");
 
+    _animationCapture = false;
+
     _capturingAnimationVizName = "";
 
     _captureEndImageAction->setEnabled(false);
@@ -2081,10 +2414,14 @@ void MainForm::endAnimCapture()
     _captureSingleTiffAction->setEnabled(true);
 }
 
-string MainForm::_getDataSetName(string file, bool promptToReplaceExistingDataset)
+string MainForm::_getDataSetName(string file, DatasetExistsAction existsAction)
 {
     vector<string> names = _controlExec->GetDataNames();
-    if (names.empty() || !promptToReplaceExistingDataset) { return (makename(file)); }
+    if (names.empty() || existsAction == AddNew) {
+        return (makename(file));
+    } else if (existsAction == ReplaceFirst) {
+        return names[0];
+    }
 
     string newSession = "New Dataset";
 

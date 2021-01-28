@@ -15,13 +15,13 @@ set (CMAKE_CXX_STANDARD 11)
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build." FORCE)
 	# Set the possible values of build type for cmake-gui
-	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "DEBUG" "RELEASE" "RELWITHDEBINFO")
 endif()
 set (CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
 set (VERSION_MAJOR 3)
-set (VERSION_MINOR 2)
-set (VERSION_MICRO 0)
+set (VERSION_MINOR 3)
+set (VERSION_MICRO 1)
 set (VERSION_RC )
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
 	get_git_head_revision (GIT_REFSPEC VERSION_COMMIT)
@@ -65,6 +65,7 @@ endif ()
 
 option (BUILD_VDC "Build VDC library and utilities" ON)
 option (BUILD_GUI "Build Vapor GUI" ON)
+option (BUILD_OSP "Build OSPRay" ON)
 option (BUILD_UTL "Build conversion and utility applications" ${DEFAULT_BUILD_UTILITIES})
 option (BUILD_DOC "Build Vapor Doxygen documentation" ON)
 option (BUILD_TEST_APPS "Build test applications" OFF)
@@ -80,10 +81,12 @@ set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set (QTDIR )
+set (OSPRAYDIR )
 set (PYTHONDIR )
 set (PYTHONVERSION )
 set (PYTHONPATH )
 set (NUMPY_INCLUDE_DIR )
+set (THIRD_PARTY_DIR )
 set (THIRD_PARTY_LIB_DIR )
 set (THIRD_PARTY_INC_DIR )
 
@@ -96,8 +99,6 @@ include_directories (${THIRD_PARTY_INC_DIR}/freetype2)
 link_directories (${THIRD_PARTY_LIB_DIR})
 link_directories (${PYTHONPATH})
 list (APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_LIB_DIR})
-list (APPEND CMAKE_PREFIX_PATH ${QTDIR}/lib/cmake)
-list (APPEND CMAKE_PROGRAM_PATH ${QTDIR}/bin)
 
 if (WIN32)
 	include_directories (${THIRD_PARTY_DIR}/Python${PYTHONVERSION}/include)
@@ -114,7 +115,6 @@ if (BUILD_VDC)
 	link_directories (${PYTHONPATH}/lib-dynload)
 endif ()
 
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
 find_library(NETCDF netcdf)
 find_library(UDUNITS2 udunits2)
 find_library(FREETYPE freetype)
@@ -216,7 +216,7 @@ if (WIN32)
 	
 	if (GENERATE_FULL_INSTALLER)
 		set (LIB_DIR ${THIRD_PARTY_DIR}/lib)
-		file (GLOB WIN_INSTALL_DLLS ${LIB_DIR}/*.dll ${QTDIR}/bin/*.dll)
+		file (GLOB WIN_INSTALL_DLLS ${LIB_DIR}/*.dll ${QTDIR}/bin/*.dll ${OSPRAYDIR}/bin/*.dll)
 
 		install (
 			FILES ${WIN_INSTALL_DLLS}
@@ -259,7 +259,7 @@ endif (WIN32)
 if (APPLE)
 	set (CPACK_BINARY_DRAGNDROP ON)
 	if (DIST_INSTALLER AND GENERATE_FULL_INSTALLER)
-		file (GLOB INSTALL_LIBS ${THIRD_PARTY_LIB_DIR}/*.dylib) 
+		file (GLOB INSTALL_LIBS ${THIRD_PARTY_LIB_DIR}/*.dylib ${OSPRAYDIR}/lib/*.dylib) 
 		file (GLOB INSTALL_FRAMEWORKS ${THIRD_PARTY_LIB_DIR}/*.framework ${PYTHONPATH} ${QTDIR}/lib/*.framework)
 		install (
 			FILES ${INSTALL_LIBS}
@@ -341,6 +341,15 @@ if (UNIX AND NOT APPLE)
 			DESTINATION ${INSTALL_LIB_DIR}
 			COMPONENT Dependencies
 			)
+
+		if (BUILD_OSP)
+			file (GLOB INSTALL_OSPRAY_LIBS ${OSPRAYDIR}/lib/*.so*)
+			install (
+				FILES ${INSTALL_OSPRAY_LIBS}
+				DESTINATION ${INSTALL_LIB_DIR}
+				COMPONENT Dependencies
+				)
+		endif ()
 
 
 	endif (DIST_INSTALLER AND GENERATE_FULL_INSTALLER)

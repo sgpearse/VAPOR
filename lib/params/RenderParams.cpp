@@ -37,7 +37,9 @@ const string RenderParams::_histoBoundsTag = "HistoBounds";
 const string RenderParams::_cursorCoordsTag = "CursorCoords";
 const string RenderParams::_heightVariableNameTag = "HeightVariable";
 const string RenderParams::_colorMapVariableNameTag = "ColorMapVariable";
-const string RenderParams::_fieldVariableNamesTag = "FieldVariableNames";
+const string RenderParams::_xFieldVariableNameTag = "FieldVariableName_X";
+const string RenderParams::_yFieldVariableNameTag = "FieldVariableName_Y";
+const string RenderParams::_zFieldVariableNameTag = "FieldVariableName_Z";
 const string RenderParams::_auxVariableNamesTag = "AuxVariableNames";
 const string RenderParams::_distribVariableNamesTag = "DistributionVariableNames";
 const string RenderParams::_variableNameTag = "VariableName";
@@ -76,9 +78,13 @@ void RenderParams::SetDefaultVariables(int dim = 3, bool secondaryColormapVariab
     //
     string varname;
     size_t ts;
-    bool   ok = DataMgrUtils::GetFirstExistingVariable(_dataMgr, 0, 0, dim, varname, ts);
+    bool   ok;
+    for (int i = dim; i > 1; i--) {
+        if (ok = DataMgrUtils::GetFirstExistingVariable(_dataMgr, 0, 0, i, varname, ts)) break;
+    }
     if (!ok) varname = "";
     SetVariableName(varname);
+    SetColorMapVariableName(varname);
 
     // Now set the rest of the variable name fields. It's not important
     // that these exist or not
@@ -96,7 +102,7 @@ void RenderParams::SetDefaultVariables(int dim = 3, bool secondaryColormapVariab
     string colorVar = varname;
     if (secondaryColormapVariable) colorVar = _findVarStartingWithLetter(varnames, 't');
 
-    SetColorMapVariableName(colorVar);
+    if (!colorVar.empty()) SetColorMapVariableName(colorVar);
 }
 
 void RenderParams::_init()
@@ -411,10 +417,13 @@ void RenderParams::GetCursorCoords(float coords[2]) const
 
 vector<string> RenderParams::GetFieldVariableNames() const
 {
-    vector<string> defaultv(3, "");
-    vector<string> varnames;
+    //	vector <string> defaultv(3, "");
+    vector<string> varnames(3);
 
-    varnames = GetValueStringVec(_fieldVariableNamesTag, defaultv);
+    //    varnames = GetValueStringVec(_fieldVariableNamesTag, defaultv);
+    varnames[0] = GetValueString(_xFieldVariableNameTag, "");
+    varnames[1] = GetValueString(_yFieldVariableNameTag, "");
+    varnames[2] = GetValueString(_zFieldVariableNameTag, "");
     varnames = string_replace(varnames, "NULL", "");
     for (int i = varnames.size(); i < 3; i++) varnames.push_back("");
 
@@ -427,8 +436,54 @@ void RenderParams::SetFieldVariableNames(vector<string> varnames)
     varnames = string_replace(varnames, "", "NULL");
     for (int i = varnames.size(); i < 3; i++) varnames.push_back("NULL");
 
-    SetValueStringVec(_fieldVariableNamesTag, "Specify vector field variable names", varnames);
-    //	setAllBypass(false);
+    SetValueString(_xFieldVariableNameTag, "", varnames[0]);
+    SetValueString(_yFieldVariableNameTag, "", varnames[1]);
+    SetValueString(_zFieldVariableNameTag, "", varnames[2]);
+}
+
+std::string RenderParams::GetXFieldVariableName() const
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    return fieldVars[0];
+}
+
+void RenderParams::SetXFieldVariableName(std::string varName)
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    fieldVars[0] = varName;
+    SetFieldVariableNames(fieldVars);
+}
+
+std::string RenderParams::GetYFieldVariableName() const
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    return fieldVars[1];
+}
+
+void RenderParams::SetYFieldVariableName(std::string varName)
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    fieldVars[1] = varName;
+    SetFieldVariableNames(fieldVars);
+}
+
+std::string RenderParams::GetZFieldVariableName() const
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    return fieldVars[2];
+}
+
+void RenderParams::SetZFieldVariableName(std::string varName)
+{
+    std::vector<std::string> fieldVars = GetFieldVariableNames();
+    VAssert(fieldVars.size() == 3);
+    fieldVars[2] = varName;
+    SetFieldVariableNames(fieldVars);
 }
 
 vector<string> RenderParams::GetAuxVariableNames() const
@@ -448,12 +503,16 @@ void RenderParams::SetAuxVariableNames(std::vector<std::string> varnames)
 string RenderParams::GetFirstVariableName() const
 {
     string str = GetVariableName();
-    if (str.length()) return str;
+    if (str.length()) return str;    // scalar
     vector<string> strvec = GetFieldVariableNames();
     for (int i = 0; i < strvec.size(); i++) {
-        if (strvec[i] != "") return strvec[i];
+        if (strvec[i] != "") return strvec[i];    // vector
     }
-    return "";
+    str = GetColorMapVariableName();
+    if (!str.empty()) return str;
+    str = GetHeightVariableName();
+    if (str.length()) return str;    // height
+    return "";                       // none
 }
 
 string RenderParams::GetHeightVariableName() const

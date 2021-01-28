@@ -3,6 +3,7 @@
 #include <vapor/glutil.h>
 #include <glm/glm.hpp>
 #include <vapor/GLManager.h>
+#include <vapor/Progress.h>
 
 using std::vector;
 
@@ -10,7 +11,7 @@ using namespace VAPoR;
 
 static VolumeAlgorithmRegistrar<VolumeRegular> registration;
 
-VolumeRegular::VolumeRegular(GLManager *gl) : VolumeAlgorithm(gl), _hasSecondData(false)
+VolumeRegular::VolumeRegular(GLManager *gl, VolumeRenderer *renderer) : VolumeGLSL(gl, renderer), _hasSecondData(false)
 {
     _data.Generate();
     _missing.Generate();
@@ -20,6 +21,7 @@ VolumeRegular::~VolumeRegular() {}
 
 int VolumeRegular::LoadData(const Grid *grid)
 {
+    VolumeGLSL::LoadData(grid);
     _dataDimensions = grid->GetDimensions();
     _hasSecondData = false;
     return _loadDataDirect(grid, &_data, &_missing, &_hasMissingData);
@@ -56,8 +58,17 @@ int VolumeRegular::_loadDataDirect(const Grid *grid, Texture3D *dataTexture, Tex
         return -1;
     }
 
+    Progress::Start("Load volume data", nVerts, true);
     auto dataIt = grid->cbegin();
-    for (size_t i = 0; i < nVerts; ++i, ++dataIt) { data[i] = *dataIt; }
+    for (size_t i = 0; i < nVerts; ++i, ++dataIt) {
+        Progress::Update(i);
+        if (Progress::Cancelled()) {
+            delete[] data;
+            return -1;
+        }
+        data[i] = *dataIt;
+    }
+    Progress::Finish();
 
     dataTexture->TexImage(GL_R32F, dims[0], dims[1], dims[2], GL_RED, GL_FLOAT, data);
 

@@ -107,6 +107,12 @@ public:
     //!
     void AddDataMgr(string dataSetName, DataMgr *dataMgr);
 
+    //! Remove a previously created Window instance
+    //!
+    //! \param [in] winName Window name  to remove
+    //
+    void RemoveVisualizer(string winName);
+
     //! Remove a DataMgr instance previously.
     //!
     //! This method removes the association of a DataMgr instance with
@@ -134,6 +140,12 @@ public:
     //! GetRenderParams()
     //
     ViewpointParams *CreateVisualizerParamsInstance(string winName);
+
+    //! Remove a previously created ViewpointParams instance
+    //!
+    //! \param [in] winName Window name  to remove
+    //
+    void RemoveVisualizerParamsInstance(string winName);
 
     //! Create a new rendering params instances
     //!
@@ -434,6 +446,15 @@ public:
 
     bool GetSaveStateEnabled() const { return (_ssave.GetEnabled()); }
 
+    //! Enable/Disable adding params changes to the undo list.
+    //! When enabled, behaves as normal.
+    //! When disabled, params are saved as normal, however the undo list is not updated.
+    //! An example use case is to store a computed value in the params database.
+    void SetSaveStateUndoEnabled(bool enabled) { _ssave.SetUndoEnabled(enabled); }
+
+    //! Get whether updating the undo list is enabled.
+    bool GetSaveStateUndoEnabled() const { return (_ssave.GetUndoEnabled()); }
+
     //! Restore state to previously saved state
     //!
     //! \retval status Returns true on success, false if the state is unchanged
@@ -449,6 +470,14 @@ public:
     bool Redo();
 
     void UndoRedoClear();
+
+    //! Return description string for event at top of undo stack
+    //
+    string GetTopUndoDesc() const;
+
+    //! Return description string for event at top of redo stack
+    //
+    string GetTopRedoDesc() const;
 
     //! Return number states saved that can be undone with Undo()
     //!
@@ -516,7 +545,7 @@ private:
         void Rebase()
         {
             if (_state0) delete _state0;
-            _state0 = new XmlNode(*_rootNode);
+            _state0 = _rootNode ? new XmlNode(*_rootNode) : NULL;
         }
         void Save(const XmlNode *node, string description);
         void BeginGroup(string descripion);
@@ -531,7 +560,15 @@ private:
 
         bool GetEnabled() const { return (_enabled); }
 
-        const XmlNode *GetTop(string &description) const;
+        void SetUndoEnabled(bool b)
+        {
+            if (!_groups.empty()) return;    // Can't change inside group
+            _addToUndoEnabled = b;
+        }
+        bool GetUndoEnabled() const { return _addToUndoEnabled; }
+
+        const XmlNode *GetTopUndo(string &description) const;
+        const XmlNode *GetTopRedo(string &description) const;
         const XmlNode *GetBase() const { return (_state0); }
 
         bool Undo();
@@ -548,6 +585,7 @@ private:
 
     private:
         bool           _enabled;
+        bool           _addToUndoEnabled = true;
         int            _stackSize;
         const XmlNode *_rootNode;
         const XmlNode *_state0;
@@ -614,6 +652,7 @@ private:
     void delete_ren_containers(string winName, string dataSetName);
     void delete_ren_containers(string winName);
     void delete_ren_containers();
+    void delete_datasets(string dataSetName);
 
     RenParamsContainer *make_ren_container(string winName, string dataSetName, string renderName);
 

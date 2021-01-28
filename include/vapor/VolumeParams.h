@@ -36,8 +36,8 @@ public:
 
     using RenderParams::GetIsoValues;
     using RenderParams::SetIsoValues;
-    vector<double> GetIsoValues(const string &variable);
-    void           SetIsoValues(const string &variable, const vector<double> &values);
+    vector<double> GetIsoValues(const string &variable) override;
+    void           SetIsoValues(const string &variable, const vector<double> &values) override;
 
     void  SetLightingEnabled(bool v);
     bool  GetLightingEnabled() const;
@@ -49,6 +49,10 @@ public:
     float GetPhongSpecular() const;
     void  SetPhongShininess(float v);
     float GetPhongShininess() const;
+
+    //! \copydoc RenderParams::GetRenderDim()
+    //
+    virtual size_t GetRenderDim() const override { return (3); }
 
     static const std::vector<std::string> GetAlgorithmNames(Type type = Type::Any);
     static void                           Register(const std::string &name, Type type = Type::Any);
@@ -63,12 +67,13 @@ private:
     };
     static std::vector<AlgorithmEntry> _algorithms;
 
-    static const std::string _algorithmTag;
     static const std::string _algorithmWasManuallySetByUserTag;
     static const std::string _isoValuesTag;
     static const std::string _enabledIsoValuesTag;
 
 public:
+    static const std::string _algorithmTag;
+
     static const std::string UseColormapVariableTag;
     static const std::string SamplingRateMultiplierTag;
     static const std::string VolumeDensityTag;
@@ -78,6 +83,11 @@ public:
     static const std::string PhongDiffuseTag;
     static const std::string PhongSpecularTag;
     static const std::string PhongShininessTag;
+
+    static const std::string OSPDensity;
+    static const std::string OSPSampleRateScalar;
+    static const std::string OSPAmbientLightIntensity;
+    static const std::string OSPDirectionalLightIntensity;
 };
 
 };    // namespace VAPoR
