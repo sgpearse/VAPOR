@@ -71,7 +71,7 @@ jobs:
             for FILE in $(git diff --name-only origin/master |grep -E "\.h|\.cpp")
             do
                 echo "    Running clang format on  $FILE"
-                clang-format --dry-run $FILE >> /tmp/clang-format.txt 2>&1
+                clang-format-10 --dry-run $FILE >> /tmp/clang-format.txt 2>&1
             done
 
       - store_artifacts:
