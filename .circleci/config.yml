@@ -61,7 +61,7 @@ jobs:
           name: install clang-format
           command: |
             apt-get update
-            apt-get install -y clang-format
+            apt-get install -y clang-format-10
 
       - checkout
 
