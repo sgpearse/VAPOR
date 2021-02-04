@@ -7,6 +7,14 @@ using namespace VAPoR;
 
 static RenderEventRouterRegistrar<SliceEventRouter> registrar(SliceEventRouter::GetClassType());
 
+
+
+
+
+
+
+
+
 SliceEventRouter::SliceEventRouter(QWidget *parent, ControlExec *ce) : RenderEventRouterGUI(ce, SliceParams::GetClassType())
 {
     // clang-format off
