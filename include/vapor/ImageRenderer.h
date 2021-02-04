@@ -25,6 +25,15 @@ class RENDER_API ImageRenderer : public TwoDRenderer {
 public:
     ImageRenderer(const ParamsMgr *pm, string winName, string dataSetName, string instName, DataMgr *dataMgr);
 
+
+
+
+
+
+
+
+
+
     virtual ~ImageRenderer();
 
     static std::string GetClassType() { return ("Image"); }
