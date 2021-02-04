@@ -10,6 +10,14 @@ static RenderEventRouterRegistrar<ImageEventRouter> registrar(ImageEventRouter::
 
 
 
+
+
+
+
+
+
+
+
 ImageEventRouter::ImageEventRouter(QWidget *parent, ControlExec *ce) : RenderEventRouterGUI(ce, ImageParams::GetClassType())
 {
     // clang-format off
