@@ -8,6 +8,16 @@ typedef ImageParams IP;
 
 static RenderEventRouterRegistrar<ImageEventRouter> registrar(ImageEventRouter::GetClassType());
 
+
+
+
+
+
+
+
+
+
+
 ImageEventRouter::ImageEventRouter(QWidget *parent, ControlExec *ce) : RenderEventRouterGUI(ce, ImageParams::GetClassType())
 {
     // clang-format off

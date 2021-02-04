@@ -9,6 +9,13 @@
 //! \author Stas Jaroszynski
 
 class ImageEventRouter : public RenderEventRouterGUI {
+
+
+
+
+
+
+
 public:
     ImageEventRouter(QWidget *parent, VAPoR::ControlExec *ce);
     static std::string GetClassType() { return VAPoR::ImageRenderer::GetClassType(); }
