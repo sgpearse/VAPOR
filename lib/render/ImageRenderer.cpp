@@ -33,6 +33,11 @@ namespace {
 //
 void conform(GLfloat *verts, int nx, int ny)
 {
+    
+
+
+
+
     VAssert(nx >= 2);
     VAssert(ny >= 2);
 

@@ -8,6 +8,10 @@
 namespace VAPoR {
 
 class PARAMS_API ImageParams : public RenderParams {
+
+
+
+
 public:
     ImageParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave);
     ImageParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave, XmlNode *xmlNode);
