@@ -18,14 +18,6 @@ static RenParamsRegistrar<ImageParams> registrar(ImageParams::GetClassType());
 
 
 
-
-
-
-
-
-
-
-
 ImageParams::ImageParams(DataMgr *dataManager, ParamsBase::StateSave *stateSave) : RenderParams(dataManager, stateSave, ImageParams::GetClassType(), 2)
 {
     SetVariableName("");

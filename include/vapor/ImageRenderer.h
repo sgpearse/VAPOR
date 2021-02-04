@@ -27,13 +27,6 @@ public:
 
 
 
-
-
-
-
-
-
-
     virtual ~ImageRenderer();
 
     static std::string GetClassType() { return ("Image"); }
