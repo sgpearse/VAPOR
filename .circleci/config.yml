@@ -58,10 +58,11 @@ jobs:
     
     steps:
       - run:
-          name: install clang-format
+          name: install deps
           command: |
             apt-get update
             apt-get install -y clang-format-11
+            apt-get install -y git
 
       - checkout
 
