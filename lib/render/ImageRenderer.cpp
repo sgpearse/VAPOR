@@ -29,11 +29,6 @@ using namespace VAPoR;
 
 
 
-
-
-
-
-
 namespace {
 //
 // Make mesh conformant. PCS coordinates may wrap around globe at boundaries :-(
